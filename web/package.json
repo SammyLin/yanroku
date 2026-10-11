@@ -1,14 +1,13 @@
 {
-  "name": "tally",
+  "name": "yanroku",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "deploy:cloud": "wrangler deploy --env cloud",
     "check": "tsc",
     "test": "node test/auth.test.ts && node test/voice.test.ts && node test/settings.test.ts && node test/push.test.ts",
-    "test:idor": "sh test/idor.sh",
+    "test:isolation": "sh test/isolation.sh",
     "test:migrate": "sh test/migrate.sh"
   },
   "devDependencies": {

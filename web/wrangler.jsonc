@@ -16,30 +16,5 @@
   "routes": [{ "pattern": "records.3mi.ai", "custom_domain": true }],
   "workers_dev": false,
   "preview_urls": false,
-  "observability": { "enabled": true },
-  // Yanroku Cloud (multi-user, Clerk sign-in): `wrangler deploy --env cloud`. Nothing above is inherited for bindings/vars/routes.
-  // Secrets: CLERK_SECRET_KEY, RUNNER_TOKEN (`wrangler secret put … --env cloud`; locally in .dev.vars.cloud, never committed).
-  "env": {
-    "cloud": {
-      "name": "kiroku-cloud",
-      "d1_databases": [
-        { "binding": "DB", "database_name": "kiroku_cloud", "database_id": "5d16446a-5b57-4ffa-bf11-f1d597d6d14e", "migrations_dir": "migrations" }
-      ],
-      "r2_buckets": [{ "binding": "AUDIO", "bucket_name": "kiroku-cloud-audio" }],
-      "vars": {
-        "AUTH_MODE": "clerk",
-        "ACCESS_TEAM": "",
-        "ACCESS_AUD": "",
-        // push stays off until a VAPID_PRIVATE_KEY secret is set for this environment
-        "VAPID_PUBLIC_KEY": "",
-        "VAPID_SUBJECT": "mailto:sammylintw@gmail.com",
-        "CLERK_PUBLISHABLE_KEY": "pk_test_c2luZ3VsYXItYW5jaG92eS0zODQ0LmNsZXJrLmFjY291bnRzLmRldiQ",
-        // local dev adds http://localhost:8800 etc. via CLERK_AUTHORIZED_PARTIES in .dev.vars.cloud
-        "CLERK_AUTHORIZED_PARTIES": "https://kiroku.3mi.ai",
-        "VOICE_MATCH_THRESHOLD": "0.65",
-        "VOICE_SUGGEST_THRESHOLD": "0.50"
-      },
-      "routes": [{ "pattern": "kiroku.3mi.ai", "custom_domain": true }]
-    }
-  }
+  "observability": { "enabled": true }
 }

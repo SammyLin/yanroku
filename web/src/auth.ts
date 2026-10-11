@@ -1,4 +1,4 @@
-// Cloudflare Access and Clerk JWT verification (RS256, WebCrypto). No imports so node can run test/auth.test.ts directly.
+// Cloudflare Access JWT verification (verifyRs256 is the generic RS256/JWKS core, exported for other entries) (RS256, WebCrypto). No imports so node can run test/auth.test.ts directly.
 
 type Jwk = JsonWebKey & { kid?: string };
 type Claims = { aud?: string | string[]; exp?: number; nbf?: number; iss?: string; email?: string; common_name?: string };
@@ -23,7 +23,7 @@ function b64url(s: string): Uint8Array<ArrayBuffer> {
 }
 
 /** RS256 signature (key from the JWKS at `url`), exp/nbf and iss; null on any failure. */
-async function verifyRs256<C extends Claims>(token: string | null, url: string, iss: string, now: number): Promise<C | null> {
+export async function verifyRs256<C extends Claims>(token: string | null, url: string, iss: string, now: number): Promise<C | null> {
   const parts = token?.split(".");
   if (!parts || parts.length !== 3) return null;
   try {
@@ -51,24 +51,4 @@ export async function verifyAccessJwt(token: string | null, team: string, aud: s
   const claims = await verifyRs256(token, `${base}/cdn-cgi/access/certs`, base, now);
   const auds = Array.isArray(claims?.aud) ? claims.aud : [claims?.aud];
   return claims && auds.includes(aud) ? claims : null;
-}
-
-/** Clerk Frontend API host from a publishable key: pk_(test|live)_<base64("<host>$")>; null if malformed. */
-export function clerkFrontendApi(pk: string | undefined): string | null {
-  const m = /^pk_(?:test|live)_([A-Za-z0-9+/=_-]+)$/.exec(pk ?? "");
-  try {
-    const host = m ? new TextDecoder().decode(b64url(m[1].replace(/=+$/, ""))) : "";
-    return /^[a-z0-9.-]+\$$/i.test(host) ? host.slice(0, -1) : null;
-  } catch {
-    return null;
-  }
-}
-
-/** Clerk session token: RS256 via the instance JWKS, iss = https://<frontend api>, a `sub`, and `azp` (when present) in `parties`. */
-export async function verifyClerkJwt(token: string | null, frontendApi: string, parties: string[], now = Date.now() / 1000) {
-  const iss = `https://${frontendApi}`;
-  const claims = await verifyRs256<Claims & { sub?: string; azp?: string }>(token, `${iss}/.well-known/jwks.json`, iss, now);
-  if (!claims || claims.iss !== iss || typeof claims.sub !== "string" || !claims.sub) return null;
-  if (claims.azp !== undefined && !parties.includes(claims.azp)) return null; // native (iOS) tokens may carry no azp
-  return claims;
 }

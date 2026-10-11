@@ -1,6 +1,6 @@
-// node test/auth.test.ts — signs tokens with a local RSA key and checks verifyAccessJwt / verifyClerkJwt against stubbed JWKS endpoints.
+// node test/auth.test.ts — signs tokens with a local RSA key and checks verifyAccessJwt (and so verifyRs256) against a stubbed JWKS endpoint.
 import assert from "node:assert/strict";
-import { clerkFrontendApi, verifyAccessJwt, verifyClerkJwt } from "../src/auth.ts";
+import { verifyAccessJwt } from "../src/auth.ts";
 
 const team = "myteam", aud = "aud-123";
 const alg = { name: "RSASSA-PKCS1-v1_5", modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" };
@@ -8,11 +8,10 @@ const { privateKey, publicKey } = await crypto.subtle.generateKey(alg, true, ["s
 const other = await crypto.subtle.generateKey(alg, true, ["sign", "verify"]);
 const jwk = { ...(await crypto.subtle.exportKey("jwk", publicKey)), kid: "k1" };
 
-const fapi = "singular-anchovy-3844.clerk.accounts.dev";
 let fetches = 0;
 globalThis.fetch = async (url) => {
   fetches++;
-  assert.ok([`https://${team}.cloudflareaccess.com/cdn-cgi/access/certs`, `https://${fapi}/.well-known/jwks.json`].includes(String(url)), String(url));
+  assert.equal(String(url), `https://${team}.cloudflareaccess.com/cdn-cgi/access/certs`);
   return Response.json({ keys: [jwk] });
 };
 
@@ -51,25 +50,4 @@ Date.now = realNow;
 await verifyAccessJwt(await sign(good), team, aud);
 assert.equal(fetches, before + 1); // certs cached
 
-// Clerk
-assert.equal(clerkFrontendApi("pk_test_c2luZ3VsYXItYW5jaG92eS0zODQ0LmNsZXJrLmFjY291bnRzLmRldiQ"), fapi);
-assert.equal(clerkFrontendApi(undefined), null);
-assert.equal(clerkFrontendApi("pk_test_" + Buffer.from("evil.example").toString("base64")), null); // no trailing $
-assert.equal(clerkFrontendApi("sk_test_abc"), null);
-const parties = ["https://kiroku.3mi.ai", "http://localhost:8800"];
-const session = { sub: "user_123", iss: `https://${fapi}`, azp: "https://kiroku.3mi.ai", exp: now + 60, nbf: now - 5, iat: now };
-const clerk = (t: string | null, p = parties) => verifyClerkJwt(t, fapi, p);
-assert.equal((await clerk(await sign(session)))?.sub, "user_123");
-assert.equal((await clerk(await sign({ ...session, azp: undefined })))?.sub, "user_123"); // native token, no azp
-assert.equal(await clerk(await sign({ ...session, azp: "https://evil.example" })), null); // wrong azp
-assert.equal(await clerk(await sign(session), []), null); // azp present but nothing authorized
-assert.equal(await clerk(await sign({ ...session, exp: now - 1 })), null); // expired
-assert.equal(await clerk(await sign({ ...session, nbf: now + 600 })), null); // not yet valid
-assert.equal(await clerk(await sign({ ...session, iss: "https://other.clerk.accounts.dev" })), null); // another instance
-assert.equal(await clerk(await sign({ ...session, iss: undefined })), null); // iss required
-assert.equal(await clerk(await sign({ ...session, sub: undefined })), null); // no user
-assert.equal(await clerk(await sign(session, { key: other.privateKey })), null); // wrong signer
-assert.equal(await clerk(await sign(session, { alg: "HS256" })), null);
-assert.equal(await clerk(await sign(good)), null); // an Access token is not a Clerk token
-assert.equal(await clerk(null), null);
 console.log("auth ok");

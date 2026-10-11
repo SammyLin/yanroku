@@ -9,17 +9,10 @@ export interface Env {
   VAPID_PUBLIC_KEY?: string; // Web Push, see push.ts
   VAPID_PRIVATE_KEY?: string;
   VAPID_SUBJECT?: string;
-  AUTH_MODE?: string; // "clerk" = Yanroku Cloud (multi-user); unset/"access" = self-host behind Cloudflare Access, user 1
-  CLERK_PUBLISHABLE_KEY?: string;
-  CLERK_AUTHORIZED_PARTIES?: string; // comma list of origins accepted in a token's azp
-  CLERK_SECRET_KEY?: string; // secret: Backend API (user email)
-  RUNNER_TOKEN?: string; // secret: /api/runner/* bearer token in clerk mode
 }
 
-export const isCloud = (env: Env) => env.AUTH_MODE === "clerk";
-
 // uid = the caller's users.id (user routes); runner routes get 0 and act on each job row's user_id.
-export type Handler = (req: Request, env: Env, params: string[], url: URL, ctx: ExecutionContext, uid: number) => Promise<unknown>;
+export type Handler<E extends Env = Env> = (req: Request, env: E, params: string[], url: URL, ctx: ExecutionContext, uid: number) => Promise<unknown>;
 
 export class HttpError extends Error {
   readonly status: number; // no parameter property: node's type stripping (test/idor.test.ts imports the routes) can't erase one
@@ -27,6 +20,13 @@ export class HttpError extends Error {
     super(message);
     this.status = status;
   }
+}
+
+// constant time: compares SHA-256 digests, so neither content nor length leaks through timing
+export async function sameSecret(a: string, b: string) {
+  const d = async (s: string) => new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)));
+  const [x, y] = await Promise.all([d(a), d(b)]);
+  return x.reduce((acc, v, i) => acc | (v ^ y[i]), 0) === 0;
 }
 
 export const errorResponse = (status: number, detail: string) => Response.json({ detail }, { status });

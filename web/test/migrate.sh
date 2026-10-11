@@ -4,10 +4,10 @@
 # Run from web/: sh test/migrate.sh
 set -eu
 cd "$(dirname "$0")/.."
-dir=$(mktemp -d "${TMPDIR:-/tmp}/kiroku-migrate.XXXXXX")
+dir=$(mktemp -d "${TMPDIR:-/tmp}/yanroku-migrate.XXXXXX")
 trap 'rm -rf "$dir"' EXIT
-sql() { npx wrangler d1 execute kiroku_cloud --env cloud --local --persist-to "$dir" "$@" >/dev/null; }
-q() { npx wrangler d1 execute kiroku_cloud --env cloud --local --persist-to "$dir" --json --command "$1" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.stringify(JSON.parse(s)[0].results)))'; }
+sql() { npx wrangler d1 execute noteapp --local --persist-to "$dir" "$@" >/dev/null; }
+q() { npx wrangler d1 execute noteapp --local --persist-to "$dir" --json --command "$1" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.stringify(JSON.parse(s)[0].results)))'; }
 
 # schema as it is live on self-host (0001-0010) + one or more rows in every table, in one execute
 { for f in migrations/00*.sql; do case "$f" in *0011_*) ;; *) cat "$f"; echo ;; esac; done; echo "

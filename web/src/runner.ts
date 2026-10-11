@@ -37,8 +37,8 @@ async function hold(env: Env, kind: Kind, jid: number, runner: string, status: s
 }
 
 // Online = contacted within 3 min (idle runners poll every 10 s, busy ones heartbeat every 60 s).
-// Jobs and queue counts are the caller's own; `cloud` folds the (shared) runners into one "Yanroku Cloud" entry.
-export async function listRunners(env: Env, uid: number, cloud: boolean) {
+// Jobs and queue counts are the caller's own.
+export async function listRunners(env: Env, uid: number) {
   const { results } = await env.DB.prepare(`SELECT r.name, r.last_seen, r.stt, r.version, r.version_time,
       CAST(strftime('%s','now') - strftime('%s', r.last_seen) AS INTEGER) AS ago_s,
       coalesce(
@@ -57,9 +57,7 @@ export async function listRunners(env: Env, uid: number, cloud: boolean) {
       (SELECT count(*) FROM summaries WHERE user_id=?1 AND status='queued') AS summaries,
       (SELECT count(*) FROM asks WHERE user_id=?1 AND status='queued') AS asks,
       (SELECT count(*) FROM vocab_scans WHERE user_id=?1 AND status='queued') AS vocab`).bind(uid).first<{ recordings: number; summaries: number; asks: number; vocab: number }>();
-  const list = results.map((r) => ({ ...r, online: r.ago_s < 180, job: r.job ? JSON.parse(r.job) : null }));
-  const runners = !cloud ? list : [{ name: "Yanroku Cloud", last_seen: list[0]?.last_seen ?? null, ago_s: list[0]?.ago_s ?? null,
-    online: list.some((r) => r.online), job: list.find((r) => r.job)?.job ?? null }];
+  const runners = results.map((r) => ({ ...r, online: r.ago_s < 180, job: r.job ? JSON.parse(r.job) : null }));
   return { runners, queued: q ?? { recordings: 0, summaries: 0, asks: 0, vocab: 0 } };
 }
 
