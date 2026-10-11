@@ -4,7 +4,7 @@ import type { Env } from "./http";
 export const STT_LANGS = ["zh", "en", "ja", "auto"];
 
 export const DEFAULTS = {
-  about: "Sr. Engineer，Software／AI，主要用於內部會議",
+  about: "", // empty = left out of the summary prompt; the iOS intro and 設定 fill it
   content_focus: "標出重點與最終結論；整理待辦事項與下一步；指出潛在風險、問題與未決事項。",
   instructions: "簡潔扼要；正式、專業的語氣；使用清楚的結構化格式。",
   stt_lang: "zh",
