@@ -60,4 +60,15 @@ The Worker fails closed: without `ACCESS_TEAM` / `ACCESS_AUD` every API call ret
 
 ## License
 
-[MIT](LICENSE)
+Yanroku's server is licensed under the **GNU Affero General Public License v3.0** ([`LICENSE`](LICENSE)).
+
+- Self-hosting for yourself or your organisation — personal or commercial, modified or not — is free and needs nothing from you.
+- If you offer a modified version to other people over a network (for example as a hosted service), the AGPL requires you to make your modified source available to those users.
+- Code up to and including commit `7e7a4cc` (2026-10-11) was published under the MIT License; those copies stay MIT. Everything after that commit is AGPL-3.0.
+- The official iOS app and Yanroku Cloud (https://yanroku.app) are separate, proprietary products by the same author.
+
+Contributions are welcome under the [Contributor License Agreement](CLA.md) — see [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
+---
+
+**授權（中文摘要）**：伺服器以 AGPL-3.0 授權。自己或公司內部自架、修改，都免費且不用做任何事；若把修改後的版本當成網路服務提供給別人使用，必須向那些使用者公開修改後的原始碼。`7e7a4cc` 以前的版本是 MIT 授權。官方 iOS App 與 Yanroku Cloud 是另外的專有產品。
