@@ -43,8 +43,8 @@
   font-family:var(--sans);color:var(--ink);background:var(--paper);font-size:15px;line-height:1.6;
   -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility
 }
-/* navy chrome: nav, list pane, top bar + drawer, player, dialogs, the landing's navy bands (.lp-navy), and the logo mark's <defs> */
-.nav,.pane,.topbar,.player,dialog,.lp-navy,.lib,.k-defs{color-scheme:dark;color:var(--ink)}
+/* navy chrome: nav, list pane, top bar + drawer, player, dialogs, and the logo mark's <defs> */
+.nav,.pane,.topbar,.player,dialog,.lib,.k-defs{color-scheme:dark;color:var(--ink)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--paper)}
 ::selection{background:var(--sig-soft)}
@@ -54,7 +54,7 @@ button:hover{background:var(--sunk)}
 button:active{transform:scale(.97)}
 button.primary{background:var(--ink);color:var(--paper);border-color:var(--ink);font-weight:600}
 button.primary:hover{background:var(--ink2)}
-:is(.nav,.pane,.topbar,.player,dialog,.lp-navy) button.primary:hover{background:var(--wave);border-color:transparent;color:#142D3B}
+:is(.nav,.pane,.topbar,.player,dialog) button.primary:hover{background:var(--wave);border-color:transparent;color:#142D3B}
 button.rec{background:var(--sig);color:var(--sig-ink);border-color:var(--sig);font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:.45em}
 button.rec:hover{filter:brightness(1.06)}
 button.rec::before{content:"";width:.55em;height:.55em;border-radius:50%;background:currentColor;flex:none}
@@ -156,109 +156,6 @@ select{border-radius:999px;padding-right:1.6em;appearance:none;background-image:
 .picklist{display:grid;gap:2px;max-height:55vh;overflow:auto;margin:0 -6px}
 .pk{border:0;background:none;text-align:left;padding:.5em .6em;padding-left:calc(.6em + var(--d,0)*16px);display:flex;gap:8px;align-items:center;border-radius:var(--r-s)}
 .pk[aria-current=true]{background:var(--sel);font-weight:600}
-/* Yanroku Cloud landing: signed-out "/" in clerk mode, and #/about or /?about for anyone (never in access mode).
-   Navy frame (.lp-navy: header, hero, architecture, footer) in both themes; the other sections follow the OS theme. */
-.landing{font-size:16px;line-height:1.7;background:var(--paper);color:var(--ink)}
-.lp-navy{background:var(--paper)}
-.lp-in{max-width:1080px;margin:0 auto;padding:0 16px}
-.landing section{padding:64px 0;scroll-margin-top:60px}
-.landing section+section{border-top:1px solid var(--line2)}
-.landing h2{font-family:var(--display);font-size:1.75em;line-height:1.3;margin:0 0 .4em}
-.landing h3{font-size:1.06em;line-height:1.45;margin:0 0 .3em}
-.landing p{margin:0 0 1em}
-.landing a{color:var(--sig)}
-.lp-lead{color:var(--ink2);max-width:40em;margin-bottom:32px!important}
-.lp-note{color:var(--mute);font-size:.94em;margin-top:20px!important}
-.landing button,.lp-btn{min-height:44px;padding:.55em 1.3em;font-size:1em}
-.lp-btn{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:999px;color:var(--ink)!important;text-decoration:none;background:var(--panel);font-weight:600}
-.lp-btn:hover{background:var(--sunk)}
-.lp-btn.primary{background:var(--ink);color:var(--paper)!important;border-color:var(--ink)}
-.lp-navy .lp-btn.primary:hover{background:var(--wave);border-color:transparent;color:#142D3B!important}
-:is([data-signin],[data-signup]):disabled::after{content:"";display:inline-block;width:.8em;height:.8em;margin-left:.5em;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:lp-spin .8s linear infinite}
-@keyframes lp-spin{to{transform:rotate(1turn)}}
-/* header */
-.lp-head{position:sticky;top:0;z-index:10;border-bottom:1px solid var(--line2)}
-.lp-head .lp-in{display:flex;align-items:center;gap:12px;min-height:60px}
-.lp-brand{display:flex;align-items:center;gap:10px;font-size:1.12em}
-.lp-head nav{display:flex;gap:2px;margin-left:auto}
-.lp-head nav a{color:var(--ink2);text-decoration:none;padding:.5em .8em;border-radius:999px;font-size:.94em}
-.lp-head nav a:hover{background:var(--sunk);color:var(--ink)}
-.lp-acts{display:flex;gap:8px;margin-left:8px}
-.lp-acts button,.lp-acts .lp-btn{min-height:40px;padding:.35em 1.1em}
-/* hero */
-.lp-hero{display:grid;gap:40px;align-items:center;padding:72px 16px 64px!important;max-width:1080px;margin:0 auto}
-.lp-hero h1{font-family:var(--display);font-size:clamp(2rem,5vw,3.1rem);line-height:1.28;margin:0 0 .55em;letter-spacing:.01em}
-.lp-hero h1::before{content:"";display:block;width:72px;height:4px;border-radius:2px;background:var(--wave);margin-bottom:28px}
-.lp-hero p{max-width:34em;color:var(--ink2);font-size:1.1em}
-.lp-hero .small{font-size:1em;color:var(--mute)}
-.lp-cta{display:flex;flex-wrap:wrap;gap:12px 14px;align-items:center;margin-top:28px}
-.lp-cta a:not(.lp-btn){padding:.6em .4em;font-weight:600}
-.lp-hero-mark{width:100%;max-width:360px;height:auto;aspect-ratio:852/486;justify-self:center;display:none}
-/* how */
-.lp-steps{list-style:none;margin:0;padding:0;display:grid;gap:16px;counter-reset:s}
-.lp-steps li{counter-increment:s;padding:20px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel)}
-.lp-steps li::before{content:"0" counter(s);display:block;font-family:var(--mono);font-size:.85em;color:var(--sig);font-weight:500;margin-bottom:8px}
-.lp-steps p,.lp-feat p{margin:0;color:var(--ink2)}
-/* compare: three cards whose rows line up (subgrid) on wide screens, stacked cards on narrow ones */
-.lp-plans{display:grid;gap:16px}
-.lp-plan{display:grid;align-content:start;border:1px solid var(--line);border-radius:var(--r);padding:20px;background:var(--panel)}
-.lp-plan.planned{border-style:dashed;border-width:1.5px}
-.lp-plan>h3{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-bottom:8px;font-size:1.2em;font-family:var(--display)}
-.lp-tag{font-family:var(--sans);font-size:.72em;font-weight:600;padding:.15em .7em;border-radius:999px;border:1px solid var(--line);color:var(--ink2)}
-.lp-tag.ok{border-color:var(--sig);color:var(--sig)}
-.lp-plan .r{padding:10px 0;border-top:1px solid var(--line2)}
-.lp-plan .k{display:block;font-size:.82em;color:var(--mute)}
-.lp-plan .act{padding-top:16px}
-/* architecture */
-.lp-arch{display:grid;gap:8px;grid-template-areas:"app" "c1" "srv" "c2" "run" "c3" "cld";margin:8px 0 0}
-.lp-col{display:grid;gap:10px;align-content:start}
-.lp-col>.k{font-size:.8em;letter-spacing:.12em;color:var(--mute);font-weight:600}
-.lp-box{border:1.5px solid var(--line);border-radius:var(--r);padding:12px 14px;background:var(--panel);font-size:.94em;line-height:1.55}
-.lp-box b{display:block;font-size:1.02em}
-.lp-box ul{margin:4px 0 0;padding-left:1.1em;color:var(--ink2)}
-.lp-box .s{color:var(--ink2)}
-.lp-box.data{border-color:var(--accent);background:var(--sig-soft)}
-.lp-box.planned{border-style:dashed}
-.lp-gate{display:grid;grid-template-columns:1fr 1fr;padding:0}
-.lp-gate>span{padding:10px 12px}
-.lp-gate>span+span{border-left:1.5px solid var(--line)}
-.lp-worker{display:grid;gap:10px}
-.lp-conn{display:flex;align-items:center;gap:12px;padding:4px 0 4px 18px;font-size:.86em;color:var(--ink2);line-height:1.45}
-.lp-conn svg{width:44px;height:16px;flex:none;transform:rotate(90deg);fill:none;stroke:var(--accent);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;overflow:visible}
-.lp-conn.dash svg{stroke-dasharray:4 4;stroke:var(--mute)}
-.lp-foot-note{font-size:.86em;color:var(--mute);margin:0}
-/* features, faq, footer */
-.lp-feat{display:grid;gap:16px 28px;list-style:none;margin:0;padding:0}
-.lp-feat li{padding-left:16px;border-left:3px solid var(--accent)}
-.lp-faq details{border-top:1px solid var(--line2);padding:2px 0}
-.lp-faq details:last-child{border-bottom:1px solid var(--line2)}
-.lp-faq summary{cursor:pointer;font-weight:600;padding:14px 0;min-height:44px;list-style-position:inside;scroll-margin-top:72px}
-.lp-faq details{max-width:52em}
-.lp-faq details p{color:var(--ink2);max-width:44em}
-
-.lp-foot{border-top:1px solid var(--line2);padding:32px 0 calc(32px + env(safe-area-inset-bottom));font-size:.94em}
-.lp-foot .lp-in{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center}
-.lp-foot a{color:var(--ink2)}
-.lp-foot small{color:var(--mute);margin-left:auto;font-size:1em}
-@media (max-width:767px){
-  .lp-head nav,.lp-acts [data-signup]{display:none}
-  .lp-acts{margin-left:auto}
-  .landing section{padding:48px 0}
-}
-@media (min-width:640px){.lp-in{padding:0 32px}.lp-hero{padding:88px 32px 72px!important}.lp-steps,.lp-feat{grid-template-columns:1fr 1fr}}
-@media (min-width:900px){
-  .lp-hero{grid-template-columns:1.5fr 1fr}
-  .lp-hero-mark{display:block}
-  .lp-plans{grid-template-columns:repeat(3,minmax(0,1fr))}
-  .lp-plan{grid-row:span 8;grid-template-rows:subgrid;row-gap:0}
-  .lp-plan .act{align-self:end}
-  .lp-arch{grid-template-columns:minmax(0,1fr) 96px minmax(0,1.3fr) 128px minmax(0,1.2fr);grid-template-areas:"app c1 srv c2 run" "app c1 srv c3 cld";column-gap:6px;row-gap:16px}
-  .lp-conn{flex-direction:column;justify-content:center;text-align:center;padding:0;gap:6px}
-  .lp-conn svg{transform:none;width:100%;max-width:96px}
-}
-@media (min-width:1000px){.lp-steps,.lp-feat{grid-template-columns:repeat(4,1fr)}}
-.ga-app{grid-area:app}.ga-c1{grid-area:c1}.ga-srv{grid-area:srv}.ga-c2{grid-area:c2}.ga-run{grid-area:run}.ga-c3{grid-area:c3}.ga-cld{grid-area:cld}
-.lp-alt{background:var(--sunk)}
 [data-user]{display:flex;align-items:center}
 .alert{position:fixed;top:0;left:0;right:0;z-index:50;background:var(--danger);color:#fff;padding:10px 16px;padding-top:calc(10px + env(safe-area-inset-top));display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap}
 .alert button{background:#fff;color:#000;border-color:#fff}
@@ -704,150 +601,6 @@ button.linkbtn:hover{background:none;color:var(--ink)}
   </form>
 </dialog>
 
-<main class="landing" id="landing" aria-busy="true" hidden>
-  <header class="lp-head lp-navy">
-    <div class="lp-in">
-      <span class="lp-brand"><svg class="mark" aria-hidden="true" focusable="false"><use href="#k-mark"/></svg><span class="lk">Yanroku<span>言錄</span></span></span>
-      <nav aria-label="頁面段落"><a href="#how">運作方式</a><a href="#compare">兩種用法</a><a href="#arch">架構</a><a href="#faq">常見問題</a></nav>
-      <div class="lp-acts">
-        <button type="button" data-signin disabled>登入</button><button type="button" class="primary" data-signup disabled>免費註冊</button>
-        <a class="lp-btn primary" href="/" data-app hidden>回到 App</a>
-      </div>
-    </div>
-  </header>
-
-  <div class="lp-navy">
-    <section class="lp-hero" aria-labelledby="lpTitle">
-      <div>
-        <h1 id="lpTitle">錄音進來，逐字稿、講者、摘要出去。</h1>
-        <p>Yanroku 言錄把會議、訪談和語音備忘錄轉成標好講者的逐字稿，再依範本整理成摘要。所有錄音都能一起提問，答案附上出處和時間點。</p>
-        <p class="small">用我們的 Yanroku Cloud，或架在你自己的 Cloudflare 帳號上。App 是同一個。</p>
-        <div class="lp-cta">
-          <button type="button" class="primary" data-signup disabled>免費註冊</button><button type="button" data-signin disabled>登入</button>
-          <a class="lp-btn primary" href="/" data-app hidden>回到 App</a>
-          <a href="#compare">自己架設</a>
-        </div>
-      </div>
-      <svg class="mark lp-hero-mark" aria-hidden="true" focusable="false"><use href="#k-mark"/></svg>
-    </section>
-  </div>
-
-  <section id="how" aria-labelledby="lpHow"><div class="lp-in">
-    <h2 id="lpHow">運作方式</h2>
-    <ol class="lp-steps">
-      <li><h3>錄音或匯入</h3><p>用 iPhone 錄，或匯入音訊、影片（一次多個檔案；影片會自動取出聲音）。其他 App 的錄音可以直接「分享到 Yanroku」。</p></li>
-      <li><h3>逐字稿與講者</h3><p>轉成文字並分出講者。幫講者命名一次，之後的錄音會依聲紋自動認出是誰。</p></li>
-      <li><h3>摘要</h3><p>選範本和語言產生摘要；同一段錄音可以有多份不同範本的摘要。</p></li>
-      <li><h3>提問</h3><p>對所有錄音一起提問，回答附上是哪一段錄音、第幾分鐘說的，點一下就跳過去播放。</p></li>
-    </ol>
-  </div></section>
-
-  <section id="compare" class="lp-alt" aria-labelledby="lpCompare"><div class="lp-in">
-    <h2 id="lpCompare">兩種用法，同一個 App</h2>
-    <p class="lp-lead">就像筆記軟體可以把資料放在自己電腦、也可以付費同步：Yanroku 可以全部交給我們，也可以整套架在你自己的帳號上，需要時再加上我們的雲端服務。</p>
-    <div class="lp-plans">
-      <article class="lp-plan">
-        <h3>Yanroku Cloud <span class="lp-tag">測試中</span></h3>
-        <div class="r"><span class="k">適合</span>想直接開始用</div>
-        <div class="r"><span class="k">登入</span>Yanroku 帳號</div>
-        <div class="r"><span class="k">資料放在</span>Yanroku Cloud</div>
-        <div class="r"><span class="k">轉錄與 AI</span>我們處理</div>
-        <div class="r"><span class="k">需要準備</span>無</div>
-        <div class="r"><span class="k">費用</span>規劃為月訂閱，含每月轉錄分鐘數</div>
-        <div class="act"><button type="button" class="primary" data-signup disabled>免費註冊</button><a class="lp-btn primary" href="/" data-app hidden>回到 App</a></div>
-      </article>
-      <article class="lp-plan">
-        <h3>自己架設 <span class="lp-tag ok">可用</span></h3>
-        <div class="r"><span class="k">適合</span>想完全掌握資料、願意自己維運</div>
-        <div class="r"><span class="k">登入</span>你自己的 Cloudflare Access（或不設）</div>
-        <div class="r"><span class="k">資料放在</span>你的 Cloudflare 帳號</div>
-        <div class="r"><span class="k">轉錄與 AI</span>你自己的 Mac（Apple Silicon）</div>
-        <div class="r"><span class="k">需要準備</span>Cloudflare 帳號、一台 Mac</div>
-        <div class="r"><span class="k">費用</span>免費開源；Cloudflare 用量依你的方案</div>
-        <div class="act"><a class="lp-btn" href="https://github.com/SammyLin/tally/blob/main/docs/SELF-HOST.md" rel="noopener">自架指南</a></div>
-      </article>
-      <article class="lp-plan planned">
-        <h3>自己架設 + 雲端處理 <span class="lp-tag">規劃中</span></h3>
-        <div class="r"><span class="k">適合</span>想自己保管資料，但不想讓一台 Mac 一直開著</div>
-        <div class="r"><span class="k">登入</span>你自己的 Cloudflare Access</div>
-        <div class="r"><span class="k">資料放在</span>你的 Cloudflare 帳號</div>
-        <div class="r"><span class="k">轉錄與 AI</span>我們處理，結果存回你的伺服器</div>
-        <div class="r"><span class="k">需要準備</span>Cloudflare 帳號、Yanroku 帳號</div>
-        <div class="r"><span class="k">費用</span>依處理分鐘數計費</div>
-        <div class="act"><a class="lp-btn" href="#faq-service">了解設計</a></div>
-      </article>
-    </div>
-    <p class="lp-note">價格即將公布。Yanroku Cloud 與自架伺服器的資料彼此獨立，不會自動同步或搬移。</p>
-  </div></section>
-
-  <section id="arch" class="lp-navy" aria-labelledby="lpArch"><div class="lp-in">
-    <h2 id="lpArch">架構一覽</h2>
-    <p class="lp-lead">Yanroku 的伺服器是一個 Cloudflare Worker，資料在 D1（資料庫）和 R2（音訊檔）。轉錄和 AI 處理在另一端：自架時是你自己的 Mac，Yanroku Cloud 則由我們處理。</p>
-    <figure class="lp-arch" aria-labelledby="lpArch">
-      <div class="lp-col ga-app"><span class="k">App</span>
-        <div class="lp-box"><b>iPhone App</b><span class="s">錄音、上傳佇列、分享延伸</span></div>
-        <div class="lp-box"><b>網頁版</b><span class="s">瀏覽器／加入主畫面</span></div>
-      </div>
-      <div class="lp-conn ga-c1"><svg viewBox="0 0 96 16" aria-hidden="true"><path d="M2 8H92M84 2l8 6-8 6"/></svg><span>HTTPS<span class="sr">：App 連到伺服器</span></span></div>
-      <div class="lp-col ga-srv"><span class="k">伺服器</span>
-        <div class="lp-box lp-gate"><span><b>Yanroku Cloud</b>Clerk 登入</span><span><b>自架</b>Cloudflare Access</span></div>
-        <div class="lp-box lp-worker"><b>Cloudflare Worker（API + 網頁）</b>
-          <div class="lp-box data"><b>D1 資料庫</b><span class="s">錄音資訊、逐字稿、講者、聲紋、摘要</span></div>
-          <div class="lp-box data"><b>R2</b><span class="s">音訊檔</span></div>
-        </div>
-      </div>
-      <div class="lp-conn ga-c2"><svg viewBox="0 0 96 16" aria-hidden="true"><path d="M94 8H4M12 2L4 8l8 6"/></svg><span>領工作／回傳結果<span class="sr">：Mac runner 主動連到 Worker</span></span></div>
-      <div class="lp-col ga-run"><span class="k">處理</span>
-        <div class="lp-box"><b>自架：你的 Mac runner</b><ul><li>whisper.cpp 轉錄（或 Groq）</li><li>sherpa-onnx 講者分離 + 聲紋</li><li>本機 Claude（ACP）：整理、摘要、提問</li></ul></div>
-      </div>
-      <div class="lp-conn dash ga-c3"><svg viewBox="0 0 96 16" aria-hidden="true"><path d="M12 2L4 8l8 6M4 8H92M84 2l8 6-8 6"/></svg><span>雲端處理服務（規劃中）：自架伺服器用服務金鑰送來</span></div>
-      <div class="lp-col ga-cld">
-        <div class="lp-box planned"><b>Yanroku Cloud 處理（規劃中）</b><ul><li>Groq 轉錄</li><li>講者分離 + 聲紋</li><li>Claude API：整理、摘要、提問</li></ul></div>
-        <p class="lp-foot-note">目前 Yanroku Cloud 的工作仍由我們的 Mac runner 處理。</p>
-      </div>
-    </figure>
-  </div></section>
-
-  <section id="features" class="lp-alt" aria-labelledby="lpFeat"><div class="lp-in">
-    <h2 id="lpFeat">功能</h2>
-    <ul class="lp-feat">
-      <li><h3>講者辨識與聲紋</h3><p>自動分出講者；命名過的人，下次依聲紋自動標上。</p></li>
-      <li><h3>原始與整理後的逐字稿</h3><p>修正錯字和標點的版本之外，原始轉錄也保留，隨時切換對照。</p></li>
-      <li><h3>點字跳播</h3><p>點任何一句就從那裡播放，可調速、前後跳 15 秒。</p></li>
-      <li><h3>範本摘要</h3><p>依範本和指定語言產生，預設繁體中文。</p></li>
-      <li><h3>跨錄音提問</h3><p>回答附錄音名稱和時間點。</p></li>
-      <li><h3>專有名詞</h3><p>把常用的人名、產品名加進詞彙表，轉錄更準；也會從逐字稿建議新詞。</p></li>
-      <li><h3>資料夾與搜尋</h3><p>用資料夾整理，搜尋標題和內容。</p></li>
-      <li><h3>複製成 Prompt</h3><p>一鍵把逐字稿整理成可以貼給其他 AI 的格式。</p></li>
-    </ul>
-  </div></section>
-
-  <section id="ios" aria-labelledby="lpIos"><div class="lp-in">
-    <h2 id="lpIos">iPhone App</h2>
-    <p class="lp-lead">錄音、背景上傳、播放和提問都在 App 裡完成；在語音備忘錄或其他 App 按「分享 → 存到 Yanroku」就能匯入。第一次打開時選擇「使用 Yanroku Cloud」或「連線到自己的伺服器」，之後隨時可以在設定切換。</p>
-    <p class="lp-note">目前透過 TestFlight 測試中，App Store 版即將推出。網頁版也能「加入主畫面」使用。</p>
-  </div></section>
-
-  <section id="faq" aria-labelledby="lpFaq"><div class="lp-in lp-faq">
-    <h2 id="lpFaq">常見問題</h2>
-    <details><summary>自己架設要付費嗎？</summary><p>軟體免費、開源（MIT）。你需要自己的 Cloudflare 帳號（Workers、D1、R2 都有免費額度，超過依 Cloudflare 計費）和一台 Apple Silicon 的 Mac 執行轉錄。</p></details>
-    <details><summary>一定要用 Mac 嗎？</summary><p>自架目前需要。之後的「雲端處理」服務可以讓你的伺服器把轉錄交給我們，就不需要 Mac 一直開著。</p></details>
-    <details><summary>可以從自架搬到 Yanroku Cloud（或反過來）嗎？</summary><p>目前不行，兩邊的資料彼此獨立。App 切換連線方式不會搬移任何資料，原本的資料留在原處。</p></details>
-    <details id="faq-service"><summary>「自己架設 + 雲端處理」怎麼運作？</summary><p>你在 Yanroku 帳號建立一把服務金鑰，存進自己 Worker 的 secret。有新錄音時，你的伺服器把音訊送來處理、取回結果、存進你自己的資料庫，我們這邊處理完就刪除。全程都是你的伺服器主動連出，不需要開放任何連入權限。這項服務還在規劃中。</p></details>
-    <details><summary>支援哪些語言？</summary><p>轉錄語言可以在設定選擇預設值，每次錄音或匯入也能另外指定；摘要可指定輸出語言。</p></details>
-    <details><summary>我的錄音會被拿去訓練 AI 嗎？</summary><p>不會。</p></details>
-    <details><summary>價格？</summary><p>Yanroku Cloud 會是月訂閱、含每月轉錄分鐘數，價格即將公布。網頁與 App 內都可以訂閱。</p></details>
-    <details><summary>有 Android 版嗎？</summary><p>還沒有。Android 可以用瀏覽器開網頁版並加入主畫面。</p></details>
-  </div></section>
-
-  <footer class="lp-foot lp-navy"><div class="lp-in">
-    <span class="lp-brand"><svg class="mark" aria-hidden="true" focusable="false"><use href="#k-mark"/></svg><span class="lk">Yanroku<span>言錄</span></span></span>
-    <a href="https://github.com/SammyLin/tally" rel="noopener">GitHub</a>
-    <a href="https://github.com/SammyLin/tally/blob/main/docs/SELF-HOST.md" rel="noopener">自架指南</a>
-    <small>© 2026 Sammy Lin</small>
-  </div></footer>
-</main>
-
 <div class="drop" id="drop" aria-hidden="true">放開以匯入音訊或影片</div>
 <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
 
@@ -916,7 +669,7 @@ function httpErr(status,txt){
   let d=null;try{d=JSON.parse(txt)}catch{}
   let msg=d&&(d.detail??d.error);
   if(msg!=null&&typeof msg!=='string')msg=JSON.stringify(msg);
-  if(status===401&&clerk){clerk.signOut();msg='登入已過期'} // the Clerk listener shows the landing page
+  if(status===401&&unauthorized){unauthorized();msg='登入已過期'} // an extension's sign-in (window.yanroku.onUnauthorized)
   else if(status===401||status===403){showAlert('登入已過期或沒有權限（'+status+'），請重新整理頁面以重新登入。');msg='登入已過期'}
   else if(status===503)showAlert('服務暫時無法使用（503）'+(msg?'：'+msg:'')+'，請稍後重新整理。');
   const e=new Error(msg||(txt&&!txt.startsWith('<')?txt.slice(0,200):`HTTP ${status}`));e.status=status;return e;
@@ -1395,7 +1148,7 @@ function route(){
   $('#main').replaceChildren(h('div',{class:'placeholder',text:'載入中…'}));
   loadDetail();
 }
-addEventListener('hashchange',()=>{if(!$('#landing').hidden||(clerk&&isAbout()))return location.reload();route()});
+addEventListener('hashchange',()=>{if($('#app').hidden)return;route()}); // an extension showing its own page handles its own hash
 function hero(){
   return h('section',{class:'hero','aria-labelledby':'heroT'},
     h('p',{class:'eyebrow',text:'YANROKU · 言錄'}),
@@ -2158,7 +1911,10 @@ addEventListener('keydown',e=>{
 });
 document.addEventListener('click',e=>{document.querySelectorAll('details.menu[open]').forEach(d=>{if(!d.contains(e.target))d.open=false})});
 
+let started=false;
 function start(){
+  $('#app').hidden=false;
+  if(started)return;started=true;
   loadSettings().then(()=>{if(S.d)renderDetail()});
   loadFolders();
   loadList();
@@ -2166,75 +1922,36 @@ function start(){
   route();
 }
 
-/* ---------- boot: self-host (Cloudflare Access) or Yanroku Cloud (Clerk sign-in) ---------- */
-let clerk=null;
-const CLERK_JS='https://cdn.jsdelivr.net/npm/@clerk/clerk-js@6.38.1/dist/clerk.browser.js';
-const CLERK_UI='https://cdn.jsdelivr.net/npm/@clerk/ui@1.39.1/dist/ui.browser.js'; // clerk-js 6 renders its components from @clerk/ui
-// SRI: these scripts see every session token, so a tampered CDN copy must not run (bump both hashes with the versions)
-const CLERK_JS_SRI='sha384-GGvezhr1z8BosGxc1db0emyOWcewf7nU9P2IhL/lzqQ8BVX0Jf1AVEXQDvjZuu1h';
-const CLERK_UI_SRI='sha384-JURm9wdjJAXgZgYoUr/he6OnzyOON7ft3Z9M9qaATJE3o2Za6+Bl77SNVSnlDIY0';
-/* ---------- Yanroku Cloud landing (clerk mode only): signed out, or #/about · /?about ---------- */
-const isAbout=()=>/^#\/about\b/.test(location.hash)||new URLSearchParams(location.search).has('about');
-// Clerk keeps a non-zero __client_uat (suffixed on dev instances) while a session may exist: without one, show the landing before Clerk loads
-const maybeSignedIn=()=>/(?:^|;\s*)__client_uat[^=]*=[1-9]/.test(document.cookie);
-function showLanding(){
-  const L=$('#landing');if(!L.hidden)return;
-  L.hidden=false;
-  // in-page links scroll without touching the hash (the app's router owns it); a <details> target opens
-  L.addEventListener('click',e=>{
-    const a=e.target.closest('a[href^="#"]');if(!a)return;
-    e.preventDefault();lpGo(a.getAttribute('href').slice(1),true);
-  });
-  lpGo(location.hash.replace(/^#(\/about\/?)?/,''),false); // #compare, #/about/compare, /?about#compare
-}
-function lpGo(id,focus){
-  const t=id&&document.getElementById(id);if(!t||!$('#landing').contains(t))return;
-  if(t.tagName==='DETAILS')t.open=true;
-  t.scrollIntoView();
-  if(focus){const f=t.matches('details')?t.querySelector('summary'):t;if(f.tabIndex<0)f.tabIndex=-1;f.focus({preventScroll:true})}
-}
-function landingReady(signedIn){
-  const L=$('#landing');L.removeAttribute('aria-busy');
-  L.querySelectorAll('[data-signin],[data-signup]').forEach(b=>{
-    b.hidden=signedIn;b.disabled=false;
-    b.onclick=()=>b.hasAttribute('data-signup')?clerk.openSignUp():clerk.openSignIn();
-  });
-  L.querySelectorAll('[data-app]').forEach(a=>a.hidden=!signedIn);
-}
+/* ---------- boot + extensions ----------
+   GET /api/config lists same-origin scripts in `extensions` (self-host: none). Each one runs before the app starts and may
+   use window.yanroku: hold() to keep the app from starting, start() when ready, setTokenProvider() to add a bearer token
+   to every API call and upload, onUnauthorized() to handle a 401 (e.g. sign in again). See docs/SPEC.md "Extending the server". */
+let tokenProvider=null, unauthorized=null;
+const yanroku=window.yanroku={
+  config:null,
+  held:false,
+  hold(){this.held=true},
+  start,
+  hideApp(){$('#app').hidden=true},
+  setTokenProvider(fn){tokenProvider=fn},
+  onUnauthorized(fn){unauthorized=fn},
+  h,$,showAlert,toast,
+};
 async function authHeaders(){
-  const t=clerk&&await clerk.session?.getToken().catch(()=>null);
+  const t=tokenProvider&&await Promise.resolve().then(tokenProvider).catch(()=>null);
   return t?{Authorization:'Bearer '+t}:{};
 }
 function loadJs(src,attrs={}){
   return new Promise((res,rej)=>{
     const el=h('script',{src,crossorigin:'anonymous',...attrs});
-    el.onload=res;el.onerror=()=>rej(new Error('無法載入登入元件'));document.head.append(el);
+    el.onload=res;el.onerror=()=>rej(new Error('無法載入 '+src));document.head.append(el);
   });
 }
 async function boot(){
-  let cfg=null;
-  try{const r=await fetch('/api/config');if(r.ok)cfg=await r.json()}catch{}
-  if(cfg?.auth_mode!=='clerk')return start();
-  $('#app').hidden=true;
-  const about=isAbout();
-  if(about||!maybeSignedIn())showLanding(); // buttons stay disabled until Clerk is ready
-  try{
-    await loadJs(CLERK_UI,{integrity:CLERK_UI_SRI});
-    await loadJs(CLERK_JS,{integrity:CLERK_JS_SRI,'data-clerk-publishable-key':cfg.clerk_publishable_key});
-    // Clerk's modals and user menu render in a portal, outside .landing: give them the same navy look (NAVY set values)
-    await window.Clerk.load({ui:{ClerkUI:window.__internal_ClerkUICtor},appearance:{variables:{
-      colorPrimary:'#70CBB5',colorPrimaryForeground:'#142D3B',colorBackground:'#1A3646',colorForeground:'#F5F1E8',
-      colorMutedForeground:'#B0BCC1',colorNeutral:'#F5F1E8',colorInput:'#0F2430',colorInputForeground:'#F5F1E8',
-      colorDanger:'#FF9A90',colorSuccess:'#86D4A0',colorWarning:'#EDB566',borderRadius:'12px',fontFamily:'system-ui,-apple-system,"PingFang TC",sans-serif'}}});
-  }catch(e){showAlert('登入服務無法使用：'+e.message);return}
-  clerk=window.Clerk;
-  const signedIn=!!clerk.user;
-  clerk.addListener(({user})=>{if(!!user!==signedIn)location.replace('/')}); // sign-in / sign-out: start over
-  landingReady(signedIn);
-  if(!signedIn||about){showLanding();return}
-  document.querySelectorAll('[data-user]').forEach(el=>{el.hidden=false;clerk.mountUserButton(el)});
-  $('#app').hidden=false;
-  start();
+  try{const r=await fetch('/api/config');if(r.ok)yanroku.config=await r.json()}catch{}
+  for(const src of yanroku.config?.extensions??[])
+    if(/^\/(?!\/)/.test(src))await loadJs(src).catch(e=>showAlert('擴充元件無法載入：'+e.message)); // same-origin paths only
+  if(!yanroku.held)start();
 }
 boot();
 </script>
