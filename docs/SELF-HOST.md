@@ -22,7 +22,7 @@
 
 ## 2. 部署 Worker
 
-以下都在 `web/` 目錄下執行。
+先 clone，之後的指令都在 `web/` 目錄下執行。
 
 ```sh
 git clone https://github.com/SammyLin/yanroku.git
@@ -34,8 +34,8 @@ npx wrangler login
 ### 2.1 建 D1 和 R2（名稱自己取）
 
 ```sh
-npx wrangler d1 create kiroku          # 輸出裡有 database_id，記下來
-npx wrangler r2 bucket create kiroku-audio
+npx wrangler d1 create yanroku          # 輸出裡有 database_id，記下來
+npx wrangler r2 bucket create yanroku-audio
 ```
 
 ### 2.2 在 `wrangler.jsonc` 加一個你自己的 env
@@ -47,11 +47,11 @@ npx wrangler r2 bucket create kiroku-audio
 ```jsonc
   "env": {
     "mine": {
-      "name": "kiroku",        // 你的 Worker 名稱
+      "name": "yanroku",       // 你的 Worker 名稱
       "d1_databases": [
-        { "binding": "DB", "database_name": "kiroku", "database_id": "<db-id>", "migrations_dir": "migrations" }
+        { "binding": "DB", "database_name": "yanroku", "database_id": "<db-id>", "migrations_dir": "migrations" }
       ],
-      "r2_buckets": [{ "binding": "AUDIO", "bucket_name": "kiroku-audio" }],
+      "r2_buckets": [{ "binding": "AUDIO", "bucket_name": "yanroku-audio" }],
       "vars": {
         "ACCESS_TEAM": "",     // 第 3 步填
         "ACCESS_AUD": "",      // 第 3 步填
@@ -79,11 +79,11 @@ npx wrangler r2 bucket create kiroku-audio
 ### 2.3 套用 migrations、部署
 
 ```sh
-npx wrangler d1 migrations apply kiroku --remote --env mine
+npx wrangler d1 migrations apply yanroku --remote --env mine
 npx wrangler deploy --env mine
 ```
 
-`kiroku` 換成你的 `database_name`。部署後打開 `https://notes.your-domain.com`，網頁會出現，但 `/api/*` 一律回 **503 `Access not configured`**。這是故意的 fail-closed：設好 Access 之前沒人拿得到資料。
+`yanroku` 換成你的 `database_name`。部署後打開 `https://notes.your-domain.com`，網頁會出現，但 `/api/*` 一律回 **503 `Access not configured`**。這是故意的 fail-closed：設好 Access 之前沒人拿得到資料。
 
 > **不要**在正式環境設 `DEV_NO_AUTH`，那只給本機 `.dev.vars` 開發用。
 
@@ -236,7 +236,7 @@ tail -f ~/yanroku/runner/data/logs/runner.log
 
 ```sh
 cd ~/yanroku/web
-npx wrangler d1 export kiroku --remote --output backup-$(date +%Y%m%d).sql --env mine
+npx wrangler d1 export yanroku --remote --output backup-$(date +%Y%m%d).sql --env mine
 ```
 
 然後：
@@ -244,7 +244,7 @@ npx wrangler d1 export kiroku --remote --output backup-$(date +%Y%m%d).sql --env
 ```sh
 cd ~/yanroku && git pull
 cd web && npm install
-npx wrangler d1 migrations apply kiroku --remote --env mine   # 先套 migrations
+npx wrangler d1 migrations apply yanroku --remote --env mine   # 先套 migrations
 npx wrangler deploy --env mine                                 # 再部署 Worker
 ~/yanroku/runner/deploy.sh                                       # 每台 Mac 都跑一次
 ```
