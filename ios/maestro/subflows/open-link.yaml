@@ -1,7 +1,0 @@
-# openLink ${LINK}, accepting iOS's 「要在「Yanroku」中打開嗎？」 prompt when it appears.
-appId: ai.3mi.tally
----
-- openLink: ${LINK}
-- tapOn:
-    text: 打開
-    optional: true
