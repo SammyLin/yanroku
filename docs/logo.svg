@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="96" height="96" role="img" aria-label="Yanroku">
+<defs><linearGradient id="k-wave" gradientUnits="userSpaceOnUse" x1="384" y1="0" x2="468" y2="0"><stop offset="0" stop-color="#70CBB5"/><stop offset="1" stop-color="#F5F1E8"/></linearGradient></defs>
+<rect width="1024" height="1024" rx="228" fill="#142D3B"/>
+<g transform="translate(512 512) scale(1.12) translate(-514 -501)">
+<g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="44">
+  <path stroke="url(#k-wave)" d="M176 588C202 588 214 420 248 420C282 420 288 662 322 662C356 662 344 296 378 296C412 296 408 684 440 684C472 684 470 430 502 430C534 430 538 522 566 522C598 522 610 408 662 408H902"/>
+  <g stroke="#F5F1E8"><path d="M738 336L806 316"/><path d="M694 482H866M682 556H878"/><rect x="682" y="630" width="196" height="74" rx="14"/></g>
+  <path stroke="#70CBB5" d="M128 498V556"/>
+</g>
+</g>
+</svg>
