@@ -129,7 +129,7 @@ npm i -g @agentclientprotocol/claude-agent-acp
 claude login            # 若沒有 claude 指令：npm i -g @anthropic-ai/claude-code 後再登入
 
 # 2) 取得程式碼
-git clone https://github.com/SammyLin/tally.git ~/noteapp
+git clone https://github.com/SammyLin/yanroku.git ~/noteapp
 
 # 3) 編譯 runner（sherpa 的 dylib 要跟著 binary 放在 lib/）
 cd ~/noteapp/runner

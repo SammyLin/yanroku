@@ -1,6 +1,6 @@
 # 自架 Yanroku（言錄）
 
-> **English summary.** Yanroku (repo `tally`) is self-hosted: a Cloudflare Worker (`web/`) stores metadata in D1 and audio in R2, behind Cloudflare Access; one or more Apple Silicon Macs run the Go runner (`runner/`) that claims jobs and does transcription (whisper.cpp or Groq), speaker diarization (sherpa-onnx) and clean-up / summaries / Ask through a local ACP agent (Claude by default). To self-host: (1) put your own domain on Cloudflare, (2) create your own D1 + R2 and add a wrangler `env` with their names, (3) apply migrations and deploy, (4) protect the domain with Cloudflare Access (your email + a Service Auth policy with one service token per runner) and set `ACCESS_TEAM` / `ACCESS_AUD`, (5) build and install the runner on a Mac with `runner/.env` pointing at your domain, (6) connect the iOS app or a browser. `docs/SETUP.md` is the maintainer's own deployment log; this file is the general guide.
+> **English summary.** Yanroku (repo `SammyLin/yanroku`) is self-hosted: a Cloudflare Worker (`web/`) stores metadata in D1 and audio in R2, behind Cloudflare Access; one or more Apple Silicon Macs run the Go runner (`runner/`) that claims jobs and does transcription (whisper.cpp or Groq), speaker diarization (sherpa-onnx) and clean-up / summaries / Ask through a local ACP agent (Claude by default). To self-host: (1) put your own domain on Cloudflare, (2) create your own D1 + R2 and add a wrangler `env` with their names, (3) apply migrations and deploy, (4) protect the domain with Cloudflare Access (your email + a Service Auth policy with one service token per runner) and set `ACCESS_TEAM` / `ACCESS_AUD`, (5) build and install the runner on a Mac with `runner/.env` pointing at your domain, (6) connect the Yanroku iOS app (https://yanroku.app, "連線到自己的伺服器") or a browser. `docs/SETUP.md` is the maintainer's own deployment log; this file is the general guide.
 
 這份是給「clone 這個 repo、要架在自己 Cloudflare 帳號上」的人看的。以下所有 `your-domain.com`、`<team>`、`<db-id>` 都是佔位，換成你自己的值。
 
@@ -25,8 +25,8 @@
 以下都在 `web/` 目錄下執行。
 
 ```sh
-git clone https://github.com/SammyLin/tally.git
-cd tally/web
+git clone https://github.com/SammyLin/yanroku.git
+cd yanroku/web
 npm install
 npx wrangler login
 ```
@@ -40,13 +40,12 @@ npx wrangler r2 bucket create kiroku-audio
 
 ### 2.2 在 `wrangler.jsonc` 加一個你自己的 env
 
-`web/wrangler.jsonc` 最上層是維護者自己的正式環境（他的 D1 id、R2 名稱、網域 `routes`、`ACCESS_TEAM` / `ACCESS_AUD`、VAPID 公鑰），`env.cloud` 是 Yanroku Cloud。**不要直接用最上層部署**，它的 `routes` 指向別人的網域。
+`web/wrangler.jsonc` 最上層是維護者自己的正式環境（他的 D1 id、R2 名稱、網域 `routes`、`ACCESS_TEAM` / `ACCESS_AUD`、VAPID 公鑰），**不要直接用最上層部署**，它的 `routes` 指向別人的網域。
 
-建議做法：在 `"env"` 裡加一個自己的環境（例如 `mine`）。wrangler 的 env **不繼承** bindings、`vars`、`routes`，所以維護者的值不會跑進來；`main`、`assets`、`compatibility_date` 這些則會沿用。
+建議做法：在最上層加一個 `"env"` 區塊，放你自己的環境（例如 `mine`）。wrangler 的 env **不繼承** bindings、`vars`、`routes`，所以維護者的值不會跑進來；`main`、`assets`、`compatibility_date` 這些則會沿用。
 
 ```jsonc
   "env": {
-    "cloud": { ... },          // 原本的，不用動
     "mine": {
       "name": "kiroku",        // 你的 Worker 名稱
       "d1_databases": [
@@ -73,7 +72,6 @@ npx wrangler r2 bucket create kiroku-audio
 | `r2_buckets[0].bucket_name` | 2.1 建的 bucket（`binding` 必須是 `AUDIO`） |
 | `routes[0].pattern` | 你的網域（`custom_domain: true`，該網域的 zone 必須在同一個 Cloudflare 帳號） |
 | `vars.ACCESS_TEAM` / `ACCESS_AUD` | 第 3 步取得 |
-| `AUTH_MODE` | **不要設**。不設（或 `access`）= 自架模式，Cloudflare Access 保護、單一使用者；`clerk` 是 Yanroku Cloud 用的 |
 | `VAPID_PUBLIC_KEY` / `VAPID_SUBJECT` + secret `VAPID_PRIVATE_KEY` | 選配，Web Push「處理完成」通知。不設就沒有推播（格式見 `web/src/push.ts` 開頭註解） |
 
 > 也可以直接改最上層那幾個欄位，但之後 `git pull` 會一直和上游衝突，用 env 比較乾淨。
@@ -146,8 +144,8 @@ Go 版本要符合 `runner/go.mod`（目前 1.26）。
 ### 4.2 取得程式碼、設定 `.env`
 
 ```sh
-git clone https://github.com/SammyLin/tally.git ~/tally
-cd ~/tally/runner
+git clone https://github.com/SammyLin/yanroku.git ~/yanroku
+cd ~/yanroku/runner
 cp .env.example .env
 ```
 
@@ -170,7 +168,7 @@ CF_ACCESS_CLIENT_SECRET=<這台 Mac 的 token Client Secret>
 | `DIARIZE` / `NUM_SPEAKERS` | `DIARIZE=0` 關掉分講者；`NUM_SPEAKERS=0` 自動判斷人數 |
 | `ACP_AGENT` / `ACP_MODEL` | 預設 `claude-agent-acp`、`opus` |
 | `DATA_DIR` | 模型、暫存、log 的位置，預設 `data` |
-| `RUNNER_TOKEN` | 只有 Yanroku Cloud 用，自架留空 |
+| `RUNNER_TOKEN` | 自架留空（Cloudflare Access 用上面的 service token） |
 
 `.env` 不要 commit，也不要在兩台 Mac 之間共用 token。
 
@@ -179,7 +177,7 @@ CF_ACCESS_CLIENT_SECRET=<這台 Mac 的 token Client Secret>
 最簡單：
 
 ```sh
-~/tally/runner/deploy.sh
+~/yanroku/runner/deploy.sh
 ```
 
 它會 `git pull --ff-only`、編譯 `tally`、把 sherpa 的 dylib 放到 `lib/`、執行 `./tally models` 下載模型（約 1.5 GB，放在 `data/models`）、有服務就重啟。沒有 launchd 服務時會裝在 `runner/` 目錄本身（可用 `TALLY_DIR=/path` 指定別處）。
@@ -187,7 +185,7 @@ CF_ACCESS_CLIENT_SECRET=<這台 Mac 的 token Client Secret>
 想手動編譯（等同 `CLAUDE.md` 裡的指令）：
 
 ```sh
-cd ~/tally/runner
+cd ~/yanroku/runner
 mkdir -p lib && cp "$(go list -m -f '{{.Dir}}' github.com/k2-fsa/sherpa-onnx-go-macos)"/lib/aarch64-apple-darwin/lib{sherpa-onnx-c-api,onnxruntime}.dylib lib/ && chmod u+w lib/*
 go build -ldflags '-extldflags "-Wl,-rpath,@executable_path/lib"' -o tally .
 ./tally models
@@ -214,7 +212,7 @@ sh install-launchd.sh
 ```sh
 launchctl kickstart -k gui/$(id -u)/ai.3mi.tally-runner   # 重啟（改完 .env 後）
 launchctl bootout gui/$(id -u)/ai.3mi.tally-runner        # 停用
-tail -f ~/tally/runner/data/logs/runner.log
+tail -f ~/yanroku/runner/data/logs/runner.log
 ```
 
 注意：
@@ -226,9 +224,7 @@ tail -f ~/tally/runner/data/logs/runner.log
 
 ## 5. 連上 iOS App（或瀏覽器）
 
-**iOS App**：第一次打開選 **「連線到自己的伺服器」** → 輸入 `https://notes.your-domain.com` → App 會開 Access 登入頁，用第 3 步允許的 email 登入（One-time PIN 或 Google）。登入有效期是 Access 的 Session Duration，過期會再請你登入，上傳佇列會暫停到你重新登入。
-
-自己編譯 App 的話見 `ios/README.md`（xcodegen、簽章；`project.yml` 裡的 bundle id `ai.3mi.tally`、App Group、`DEVELOPMENT_TEAM` 要換成你自己的）。
+**iOS App**：用 Yanroku App（ https://yanroku.app ），第一次打開選 **「連線到自己的伺服器」** → 輸入 `https://notes.your-domain.com` → App 會開 Access 登入頁，用第 3 步允許的 email 登入（One-time PIN 或 Google）。登入有效期是 Access 的 Session Duration，過期會再請你登入，上傳佇列會暫停到你重新登入。
 
 **瀏覽器**：Safari / Chrome 開 `https://notes.your-domain.com`，登入後可「加入主畫面」，直接在網頁錄音。
 
@@ -239,18 +235,18 @@ tail -f ~/tally/runner/data/logs/runner.log
 更新前先備份 D1（migrations 不能倒回）：
 
 ```sh
-cd ~/tally/web
+cd ~/yanroku/web
 npx wrangler d1 export kiroku --remote --output backup-$(date +%Y%m%d).sql --env mine
 ```
 
 然後：
 
 ```sh
-cd ~/tally && git pull
+cd ~/yanroku && git pull
 cd web && npm install
 npx wrangler d1 migrations apply kiroku --remote --env mine   # 先套 migrations
 npx wrangler deploy --env mine                                 # 再部署 Worker
-~/tally/runner/deploy.sh                                       # 每台 Mac 都跑一次
+~/yanroku/runner/deploy.sh                                       # 每台 Mac 都跑一次
 ```
 
 順序是 migrations → Worker → runner：新版 Worker 可能需要新欄位，新版 runner 可能需要新 API。

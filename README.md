@@ -2,7 +2,9 @@
 
 <h1 align="center">Yanroku 言錄</h1>
 
-<p align="center">Self-hosted AI voice notes: record or import audio, get a speaker-labelled transcript you can play back in sync, and template-based summaries.<br>自架的 AI 語音筆記：錄音或匯入音訊，轉成分講者、可同步播放的逐字稿，再產生摘要。</p>
+<p align="center">The self-hostable server of Yanroku 言錄, AI voice notes: record or import audio, get a speaker-labelled transcript you can play back in sync, and template-based summaries.<br>Yanroku 言錄的自架伺服器：錄音或匯入音訊，轉成分講者、可同步播放的逐字稿，再產生摘要。</p>
+
+<p align="center">Don't want to run a server? The hosted <b>Yanroku Cloud</b> and the iOS app are at <a href="https://yanroku.app">yanroku.app</a>. The app also connects to a server you host from this repo.</p>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/screenshot-dark.png">
@@ -54,7 +56,7 @@ Local development: see [`CLAUDE.md`](CLAUDE.md). Design and API contracts: [`doc
 
 ## Security
 
-The Worker fails closed: without `ACCESS_TEAM` / `ACCESS_AUD` every API call returns 503, and each request's Cloudflare Access JWT is verified. It is built as a single-user tool; there are no per-user accounts.
+The Worker fails closed: without `ACCESS_TEAM` / `ACCESS_AUD` every API call returns 503, and each request's Cloudflare Access JWT is verified. The schema is multi-user (every row carries a `user_id` and every query is scoped by it, covered by a two-user isolation test), but this entry authenticates a single user: everyone who passes Access is that user. Other sign-in schemes plug in through `createWorker` (see "Extending the server" in [`docs/SPEC.md`](docs/SPEC.md)).
 
 ## License
 

@@ -234,7 +234,40 @@ Data lives on Cloudflare; processing on one or more Macs ("runners": this Mac + 
 - Cloudflare Access app on records.3mi.ai: Google login allowing only your own email; one service token per runner (`Service Auth` policy). Configured by the user in the Zero Trust dashboard.
 - Worker verifies `Cf-Access-Jwt-Assertion` on every /api and /media request (RS256 via WebCrypto, keys from `https://<ACCESS_TEAM>.cloudflareaccess.com/cdn-cgi/access/certs`, cached; check `aud` contains `ACCESS_AUD`, `exp`). Vars: `ACCESS_TEAM`, `ACCESS_AUD`. If unset → 503 for everything except static assets. Local dev only: `DEV_NO_AUTH=1` in `.dev.vars`.
 - Browser identity = JWT `email`; runner identity = JWT `common_name` (service token client id). `/api/runner/*` accepts either (so it can be tested), but runner name comes from the request body.
-- `AUTH_MODE` (2026-10-09, Yanroku Cloud Phase 1, see docs/CLOUD-PLAN.md): unset/`access` = the above, every request is user 1. `clerk` (wrangler env `cloud`) = Clerk session token (`Authorization: Bearer`, else `__session` cookie) → `users.id`; `/api/runner/*` only `Authorization: Bearer <RUNNER_TOKEN>`. `GET /api/config` is public: `{auth_mode, clerk_publishable_key, app_name}`. Every table but `runners` has `user_id` (migration 0011); user handlers get `uid` and bind it in every statement (another user's row = 404); runner routes act on the job row's `user_id`. Tests: `sh web/test/idor.sh` (two real Clerk dev users), `sh web/test/migrate.sh` (0011 on self-host-shaped data).
+- Multi-user schema (migration 0011, 2026-10-09): every table but `runners` has `user_id`; user handlers get `uid` and bind it in every statement (another user's row = 404); runner routes act on the job row's `user_id`. Self-host's entry (`src/index.ts`, `accessIdentify`) makes every Access-authenticated request user 1. Who the caller is comes from the entry's `identify` (see "Extending the server" below); `GET /api/config` is public. Tests: `npm run test:isolation` (two users via a fake-identity entry, every route), `npm run test:migrate` (0011 on self-host-shaped data).
+
+### Extending the server (2026-10-11)
+The server is a library plus a thin entry. `web/src/app.ts` exports `createWorker(opts)`, `routes` (core routes), `accessIdentify` and `listRunners`; `src/index.ts` is just `export default createWorker({ identify: accessIdentify })`. Another deployment (e.g. the hosted Yanroku Cloud, which pulls this repo in as a git submodule) writes its own entry:
+
+```ts
+export type Caller = { uid: number } | { runner: true };
+export type Identify<E extends Env = Env> = (req: Request, env: E, path: string, ctx: ExecutionContext) => Promise<Caller | Response>;
+export type Route<E extends Env = Env> = [method: string, path: RegExp, handler: Handler<E>];
+export interface WorkerOptions<E extends Env = Env> {
+  identify: Identify<E>;                          // who is calling; a Response (401/403/503) is returned as is
+  extraRoutes?: Route<E>[];                       // matched BEFORE core routes: add routes or override one (same method + regex)
+  config?: (env: E) => Record<string, unknown>;   // shallow-merged over GET /api/config {auth_mode:"access", app_name, extensions:[]}
+  onScheduled?: ExportedHandler<E>["scheduled"];  // passed through as `scheduled`
+}
+export function createWorker<E extends Env = Env>(opts: WorkerOptions<E>): ExportedHandler<E>;
+```
+
+- Request order: `GET /api/config` (public) → `identify` → CSRF check (`Sec-Fetch-Site` cross-site/same-site on non-GET → 403) → route loop over `[...extraRoutes, ...routes]`; a handler gets `uid` (0 for `{runner:true}`), `HttpError` → its status, anything else → 500.
+- `identify` must fail closed and must keep runner routes (`/api/runner/*`) and user routes apart: a runner credential is never a user and vice versa.
+- Helpers for entries: `verifyRs256(token, jwksUrl, iss, now)` (`src/auth.ts`, RS256 via a JWKS URL; null on any failure), `sameSecret(a, b)` (`src/http.ts`, constant-time compare), `runIsolation(...)` (`test/isolation.ts`, run it with real tokens and pass the extra routes and their `cases`).
+- UI extensions: `/api/config` `extensions` is a list of same-origin script paths (e.g. `["/cloud.js"]`; anything not starting with a single `/` is ignored). `index.html` loads them in order before starting the app, and exposes `window.yanroku`:
+
+| Member | Meaning |
+|---|---|
+| `config` | the `/api/config` body (`auth_mode`, `app_name`, `extensions`, plus whatever the entry adds) |
+| `hold()` | call synchronously while loading: the app does not start after the extensions load |
+| `start()` | show `#app` and start the app (idempotent) |
+| `hideApp()` | hide `#app` (e.g. while showing a sign-in page) |
+| `setTokenProvider(fn)` | `async () => string \| null`; a token becomes `Authorization: Bearer` on every API call and upload part |
+| `onUnauthorized(fn)` | called on any 401 instead of the default "登入已過期" alert |
+| `h`, `$`, `showAlert`, `toast` | the page's DOM helpers |
+
+  The hashchange router does nothing while `#app` is hidden, so an extension that shows its own page owns the hash then. The header and nav each have an empty `<div data-user hidden>` slot for an account menu. Self-host lists no extensions, so the app starts as it always did.
 
 ### Uploads (R2 multipart through the Worker; no S3 keys needed)
 Part size 50 MiB (last part smaller); Worker never buffers more than one part.

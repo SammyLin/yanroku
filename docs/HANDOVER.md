@@ -12,9 +12,8 @@
 
 ## Product direction (2026-10-08)
 
-- Name: **Yanroku 言錄**. History: Tally → Kiroku 記錄 (2026-10-08) → **Yanroku 言錄** (2026-10-11), because the kiroku domains were taken; 言 in the name now matches the 言 in the logo (sound wave flowing into 言, unchanged). Planned domain yanroku.app (not bought yet); kiroku.3mi.ai / records.3mi.ai stay live. Internal names — repo, `tally` runner binary, launchd label `ai.3mi.tally-runner`, bundle ids `ai.3mi.tally(.share)`, App Group, Xcode targets `Tally` / `KirokuShare`, Workers `noteapp` / `kiroku-cloud`, D1/R2 names — unchanged.
-- Positioning: users choose either **Yanroku Cloud** (paid, hosted by us) or **self-hosted** (their own Worker + runner); the iOS app connects to either via the backend URL setting. Marketing: "both work".
-- Implication for later: Cloud needs multi-tenant accounts, billing (minutes quota), and hosted processing; self-host stays the single-user setup in docs/SETUP.md.
+- Name: **Yanroku 言錄**. History: Tally → Kiroku 記錄 (2026-10-08) → **Yanroku 言錄** (2026-10-11), because the kiroku domains were taken; 言 in the name now matches the 言 in the logo (sound wave flowing into 言, unchanged). Domain yanroku.app (hosted Cloud + app); records.3mi.ai is the owner's self-host. Internal names — `tally` runner binary, launchd label `ai.3mi.tally-runner`, bundle ids `ai.3mi.tally(.share)`, App Group, Xcode targets `Tally` / `KirokuShare`, Workers `noteapp` / `kiroku-cloud`, D1/R2 names — unchanged.
+- Repo split (2026-10-11): this public repo (`SammyLin/yanroku`, history carried over from `SammyLin/tally`) is the self-hostable server: Worker (Access mode) + web app + migrations + runner + self-host docs. The iOS app and the hosted Yanroku Cloud (sign-in, multi-user hosting, billing, landing page) live in a private repo that pulls this one in as a git submodule and builds its own Worker entry with `createWorker` (docs/SPEC.md "Extending the server"). Self-host stays the single-user setup in docs/SETUP.md / docs/SELF-HOST.md.
 
 ## 1. Goal
 
