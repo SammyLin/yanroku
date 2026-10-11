@@ -1,6 +1,6 @@
 # 自架 Yanroku（言錄）
 
-> **English summary.** Yanroku (repo `SammyLin/yanroku`) is self-hosted: a Cloudflare Worker (`web/`) stores metadata in D1 and audio in R2, behind Cloudflare Access; one or more Apple Silicon Macs run the Go runner (`runner/`) that claims jobs and does transcription (whisper.cpp or Groq), speaker diarization (sherpa-onnx) and clean-up / summaries / Ask through a local ACP agent (Claude by default). To self-host: (1) put your own domain on Cloudflare, (2) create your own D1 + R2 and add a wrangler `env` with their names, (3) apply migrations and deploy, (4) protect the domain with Cloudflare Access (your email + a Service Auth policy with one service token per runner) and set `ACCESS_TEAM` / `ACCESS_AUD`, (5) build and install the runner on a Mac with `runner/.env` pointing at your domain, (6) connect the Yanroku iOS app (https://yanroku.app, "連線到自己的伺服器") or a browser. `docs/SETUP.md` is the maintainer's own deployment log; this file is the general guide.
+> **English summary.** Yanroku (repo `SammyLin/yanroku`) is self-hosted: a Cloudflare Worker (`web/`) stores metadata in D1 and audio in R2, behind Cloudflare Access; one or more Apple Silicon Macs run the Go runner (`runner/`) that claims jobs and does transcription (whisper.cpp or Groq), speaker diarization (sherpa-onnx) and clean-up / summaries / Ask through a local ACP agent — Claude Code by default, or Codex — so these run on the Claude or ChatGPT subscription you already have, with no separate API bill (see 4.5). To self-host: (1) put your own domain on Cloudflare, (2) create your own D1 + R2 and add a wrangler `env` with their names, (3) apply migrations and deploy, (4) protect the domain with Cloudflare Access (your email + a Service Auth policy with one service token per runner) and set `ACCESS_TEAM` / `ACCESS_AUD`, (5) build and install the runner on a Mac with `runner/.env` pointing at your domain, (6) connect the Yanroku iOS app (https://yanroku.app, "連線到自己的伺服器") or a browser. `docs/SETUP.md` is the maintainer's own deployment log; this file is the general guide.
 
 這份是給「clone 這個 repo、要架在自己 Cloudflare 帳號上」的人看的。以下所有 `your-domain.com`、`<team>`、`<db-id>` 都是佔位，換成你自己的值。
 
@@ -15,7 +15,7 @@
 | Workers Paid 方案（建議，每月 US$5） | Free 方案每個請求只有 10 ms CPU，而每個 API 請求都要驗 Access JWT，上傳大檔、匯出逐字稿、批次寫 D1 很容易超過；Paid 的 CPU、D1、R2 額度也大很多。`docs/SPEC.md` 就是以 Paid 為前提設計 |
 | Apple Silicon Mac（runner 用） | runner 連結 sherpa-onnx 的 **macOS arm64** dylib（`lib/aarch64-apple-darwin`），Intel Mac 和 Linux 目前跑不了。要能長時間開著、不睡眠 |
 | Groq API key（選配） | `STT_PROVIDER=groq` 時用 Groq Whisper 轉錄，比本機快，但音訊會離開你的 Mac。不填就用本機 whisper.cpp（Metal） |
-| Claude（本機 ACP agent） | 逐字稿整理、標題、摘要、Ask 都透過 ACP agent（預設 `claude-agent-acp`）用你自己的 Claude 帳號在 Mac 上跑。逐字稿文字會送到該 agent 使用的模型 |
+| Claude Code 或 Codex（本機 ACP agent） | 逐字稿整理、標題、摘要、Ask 都透過 ACP agent 用你已經有的 Claude 或 ChatGPT 訂閱在 Mac 上跑，不用另外申請 API key、不另外計費。逐字稿文字會送到該 agent 使用的模型。設定見 [4.5](#45-用你自己的-ai-訂閱claude-code-或-codex) |
 | iPhone（選配） | 用 Yanroku App；不用 App 的話，瀏覽器開你的網址也能錄音、上傳、看結果 |
 
 ---
@@ -139,6 +139,8 @@ npm i -g @agentclientprotocol/claude-agent-acp
 claude login        # 沒有 claude 指令的話：npm i -g @anthropic-ai/claude-code 再登入
 ```
 
+想用 Codex（ChatGPT 訂閱）代替 Claude Code，見 [4.5](#45-用你自己的-ai-訂閱claude-code-或-codex)。
+
 Go 版本要符合 `runner/go.mod`（目前 1.26）。
 
 ### 4.2 取得程式碼、設定 `.env`
@@ -166,7 +168,7 @@ CF_ACCESS_CLIENT_SECRET=<這台 Mac 的 token Client Secret>
 | `GROQ_API_KEY` / `GROQ_MODEL` | `groq` 時必填 key；model 預設 `whisper-large-v3` |
 | `WHISPER_MODEL` / `WHISPER_LANG` | 預設 `data/models/ggml-large-v3-turbo.bin`、`zh` |
 | `DIARIZE` / `NUM_SPEAKERS` | `DIARIZE=0` 關掉分講者；`NUM_SPEAKERS=0` 自動判斷人數 |
-| `ACP_AGENT` / `ACP_MODEL` | 預設 `claude-agent-acp`、`opus` |
+| `ACP_AGENT` / `ACP_MODEL` | 預設 `claude-agent-acp`、`opus`。換成 Codex 見 4.5；`ACP_MODEL` 只對 Claude Code 有效 |
 | `DATA_DIR` | 模型、暫存、log 的位置，預設 `data` |
 | `RUNNER_TOKEN` | 自架留空（Cloudflare Access 用上面的 service token） |
 
@@ -220,6 +222,52 @@ tail -f ~/yanroku/runner/data/logs/runner.log
 - 多台 Mac 可以同時跑，工作用 lease 分配，不會重複處理。網頁的 runner 狀態會顯示每台的版本和是否在線。
 - 專案和 `DATA_DIR` 放內建磁碟（APFS）。exFAT 外接碟會產生 `._*` 檔，讓 git 出錯。
 
+### 4.5 用你自己的 AI 訂閱（Claude Code 或 Codex）
+
+逐字稿整理、標題、摘要和 Ask 不需要另外申請 API key：runner 透過 [ACP](https://agentclientprotocol.com)（Agent Client Protocol）呼叫你 Mac 上已登入的 Claude Code 或 Codex，用的是你本來就付的 Claude 或 ChatGPT 訂閱額度，不會再多一張 API 帳單。
+
+這只負責「文字」的部分。語音轉文字（whisper.cpp 或 Groq）和分講者（sherpa-onnx）是另外的，不經過 Claude 或 Codex。
+
+**Claude Code（預設）**，需要 Claude Pro / Max 等可用 Claude Code 的方案：
+
+```sh
+npm i -g @agentclientprotocol/claude-agent-acp
+claude login        # 沒有 claude 指令的話：npm i -g @anthropic-ai/claude-code
+```
+
+```sh
+# runner/.env
+ACP_AGENT=claude-agent-acp
+ACP_MODEL=opus      # 模型別名，例如 opus、sonnet
+```
+
+**Codex**，需要 ChatGPT 方案（Plus / Pro 等）：
+
+```sh
+npm i -g @openai/codex
+codex login         # 用 ChatGPT 帳號登入
+```
+
+```sh
+# runner/.env（adapter 由 npx 在第一次呼叫時下載）
+ACP_AGENT=npx -y @zed-industries/codex-acp -c model=gpt-5.5
+```
+
+Codex 的模型寫在 `ACP_AGENT` 的 `-c model=...`，`ACP_MODEL` 對它沒有作用。請指定 adapter 支援的模型：目前測過 adapter 0.16.0 搭配 `gpt-5.5` 可用，gpt-6 系列會被這版 adapter 拒絕。
+
+速度參考（同一段短提示）：Claude Code 每次約 3 秒，Codex 約 11 秒。整理一份長逐字稿會分成多次呼叫，Codex 總時間會明顯比較久，但不影響結果。
+
+改完 `.env` 要重啟 runner（`launchctl kickstart -k gui/$(id -u)/ai.3mi.tally-runner`）。
+
+**疑難排解**
+
+| 症狀 | 處理 |
+|---|---|
+| 摘要／整理失敗，log 提到未登入、auth、401 | agent 沒登入或登入過期。用跑 runner 的同一個使用者執行 `claude login` 或 `codex login`，再重啟 runner |
+| log 提到 model not supported / 模型不存在 | 該 agent 或 adapter 不支援你指定的模型。Codex 換 `-c model=` 成 adapter 支援的模型（例如 `gpt-5.5`）；Claude Code 換 `ACP_MODEL`（例如 `sonnet`） |
+| `ACP agent ...: executable file not found` | `claude-agent-acp` 或 `npx` 不在 launchd 的 PATH；確認已安裝，並用 `install-launchd.sh` 重裝服務 |
+| 訂閱用量到上限 | 等額度恢復，或暫時把 `ACP_AGENT` 換成另一個 agent |
+
 ---
 
 ## 5. 連上 iOS App（或瀏覽器）
@@ -267,4 +315,4 @@ npx wrangler deploy --env mine                                 # 再部署 Worke
 | 轉錄失敗、磁碟空間不足 | 模型約 1.5 GB，處理中的音訊會暫存在 `DATA_DIR`。清出空間，或把 `DATA_DIR` 指到有空間的內建磁碟 |
 | 執行 `./tally` 直接 `killed` | 用 `cp` 覆蓋了 macOS 跑過的 binary，會被 SIGKILL。改用 `runner/deploy.sh`（寫新檔再 `mv`），或手動 build 到新檔名再 `mv` |
 | 找不到 `libsherpa-onnx-c-api.dylib` | `tally` 旁邊沒有 `lib/`；照 4.3 複製 dylib，或直接跑 `deploy.sh` |
-| 摘要／整理失敗 | `claude-agent-acp` 沒裝或 `claude login` 過期；在同一個使用者下跑 `claude` 確認 |
+| 摘要／整理失敗 | ACP agent 沒裝或登入過期（`claude login` / `codex login`），或模型不被支援；見 4.5 |

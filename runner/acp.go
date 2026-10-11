@@ -23,7 +23,7 @@ var acpMu sync.Mutex
 // Plain text-in/text-out use; tool calls would only waste time (and get denied anyway).
 const acpPreamble = "Answer directly from the text below. Do not use any tools or read/write files.\n\n"
 
-// claude-agent-acp extensions (other agents ignore unknown _meta): no tools, plain system prompt,
+// claude-agent-acp extensions (other agents ignore unknown _meta; verified with codex-acp): no tools, plain system prompt,
 // and skip ~/.claude settings so the user's plugins/hooks/CLAUDE.md don't leak into outputs.
 var acpMeta = map[string]any{
 	"disableBuiltInTools": true,
@@ -62,7 +62,7 @@ func acpAsk(ctx context.Context, cfg Config, prompt string) (string, error) {
 	defer cancel()
 	cmd := exec.CommandContext(ctx, argv[0], argv[1:]...)
 	cmd.Dir = cwd
-	cmd.Env = append(os.Environ(), "ANTHROPIC_MODEL="+cfg.ACPModel)
+	cmd.Env = append(os.Environ(), "ANTHROPIC_MODEL="+cfg.ACPModel) // Claude only; codex-acp takes -c model=... in ACP_AGENT
 	cmd.WaitDelay = 2 * time.Second
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
