@@ -3,6 +3,9 @@ package main
 import (
 	"bufio"
 	"cmp"
+	"errors"
+	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -59,12 +62,49 @@ func loadConfig() Config {
 		OpenRouterSummary: cmp.Or(os.Getenv("OPENROUTER_SUMMARY"), "openai/gpt-5.6-luna"),
 		OpenRouterAsk:     cmp.Or(os.Getenv("OPENROUTER_ASK"), "openai/gpt-5.6-luna"),
 
-		APIBase:            cmp.Or(os.Getenv("API_BASE"), "https://records.3mi.ai"),
+		APIBase:            strings.TrimSpace(os.Getenv("API_BASE")),
 		AccessClientID:     os.Getenv("CF_ACCESS_CLIENT_ID"),
 		AccessClientSecret: os.Getenv("CF_ACCESS_CLIENT_SECRET"),
 		RunnerToken:        os.Getenv("RUNNER_TOKEN"),
 		RunnerName:         cmp.Or(os.Getenv("RUNNER_NAME"), host),
 	}
+}
+
+// needsAPI reports whether cmd talks to the Worker and so needs API_BASE.
+// models and version must not: deploy.sh runs them before .env may be filled in.
+func needsAPI(cmd string) bool {
+	return cmd == "run" || cmd == "ingest" || cmd == "voiceprints"
+}
+
+// validateAPIBase returns raw without its trailing slash, or an error saying how to fix it.
+func validateAPIBase(raw string) (string, error) {
+	if strings.TrimSpace(raw) == "" {
+		return "", errors.New("API_BASE is required: set it in runner/.env to your own Worker URL, e.g. API_BASE=https://notes.example.com (there is no default)")
+	}
+	invalid := func(why string) (string, error) {
+		return "", fmt.Errorf("API_BASE %q is not a valid URL: %s", raw, why)
+	}
+	if strings.ContainsFunc(raw, func(r rune) bool { return r <= ' ' || r == 0x7f }) {
+		return invalid("contains whitespace or control characters")
+	}
+	u, err := url.Parse(raw)
+	if err != nil {
+		return invalid(err.Error())
+	}
+	local := u.Hostname() == "localhost" || u.Hostname() == "127.0.0.1" || u.Hostname() == "::1"
+	switch {
+	case u.Scheme != "https" && !(u.Scheme == "http" && local):
+		return invalid("scheme must be https (http only for localhost)")
+	case u.Host == "":
+		return invalid("missing host")
+	case u.User != nil:
+		return invalid("must not contain user:password")
+	case u.RawQuery != "" || u.ForceQuery || u.Fragment != "":
+		return invalid("must not have a query or fragment")
+	case u.Path != "" && u.Path != "/":
+		return invalid("must not have a path (the runner adds /api/...)")
+	}
+	return strings.TrimSuffix(raw, "/"), nil
 }
 
 // loadDotEnv sets KEY=VALUE pairs from path without overriding variables already set.

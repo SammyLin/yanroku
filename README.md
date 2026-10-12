@@ -109,9 +109,11 @@ Local development: see [`CLAUDE.md`](CLAUDE.md).
 
 | Variable | Default | |
 |---|---|---|
-| `API_BASE` | maintainer's domain | Your Worker's URL. Always set it |
+| `API_BASE` | — (required) | Your Worker's URL. The runner refuses to start without it |
 | `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` | | This Mac's Cloudflare Access service token |
 | `RUNNER_NAME` | hostname | Shown as the job owner and in runner status |
+
+`API_BASE` is required and has no default. Set it to your own Worker's URL (for example `https://notes.example.com`). If it is missing, empty or not a valid URL, `tally run` exits with an error.
 | `STT_PROVIDER` | `local` | `local` = whisper-cli on this Mac; `groq` = Groq Whisper API (audio leaves the Mac) |
 | `WHISPER_MODEL` / `WHISPER_LANG` | `data/models/ggml-large-v3-turbo.bin` / `zh` | Local speech-to-text |
 | `GROQ_API_KEY` / `GROQ_MODEL` | / `whisper-large-v3` | Required for `groq` |
