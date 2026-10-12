@@ -25,6 +25,9 @@ func TestSelectModel(t *testing.T) {
 		{"summary free plan", StepSummary, strPtr("free"), "openai/gpt-5.6-luna"},
 		{"summary pro plan", StepSummary, strPtr("pro"), "anthropic/claude-sonnet-5.5"},
 		{"cleanup ignores plan", StepCleanup, strPtr("pro"), "openai/gpt-5.6-luna"},
+		{"title ignores plan", StepTitle, strPtr("pro"), "openai/gpt-5.6-luna"},
+		{"ask ignores plan", StepAsk, strPtr("pro"), "openai/gpt-5.6-luna"},
+		{"summary unknown plan", StepSummary, strPtr("enterprise"), "openai/gpt-5.6-luna"},
 	}
 
 	for _, tt := range tests {
@@ -34,6 +37,34 @@ func TestSelectModel(t *testing.T) {
 				t.Errorf("selectModel() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+// TestProSummaryOverridesDefault verifies that Pro plan summary uses Sonnet even though the default is Luna.
+func TestProSummaryOverridesDefault(t *testing.T) {
+	cfg := Config{
+		OpenRouterSummary: "openai/gpt-5.6-luna", // Default is Luna
+	}
+
+	freePlan := "free"
+	proPlan := "pro"
+
+	// Free plan should use the default (Luna)
+	freeModel := selectModel(cfg, StepSummary, &freePlan)
+	if freeModel != "openai/gpt-5.6-luna" {
+		t.Errorf("Free plan summary = %v, want openai/gpt-5.6-luna", freeModel)
+	}
+
+	// Pro plan should override to Sonnet, ignoring the default
+	proModel := selectModel(cfg, StepSummary, &proPlan)
+	if proModel != "anthropic/claude-sonnet-5.5" {
+		t.Errorf("Pro plan summary = %v, want anthropic/claude-sonnet-5.5", proModel)
+	}
+
+	// No plan should fall back to default
+	noModel := selectModel(cfg, StepSummary, nil)
+	if noModel != "openai/gpt-5.6-luna" {
+		t.Errorf("No plan summary = %v, want openai/gpt-5.6-luna (default)", noModel)
 	}
 }
 
