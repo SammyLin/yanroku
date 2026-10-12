@@ -34,6 +34,13 @@ func main() {
 	if len(args) > 0 {
 		cmd, args = args[0], args[1:]
 	}
+	if needsAPI(cmd) {
+		base, err := validateAPIBase(cfg.APIBase)
+		if err != nil {
+			fatal(err)
+		}
+		cfg.APIBase = base
+	}
 	var err error
 	switch {
 	case cmd == "run" && len(args) == 0:

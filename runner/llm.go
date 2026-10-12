@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"log/slog"
@@ -30,7 +31,7 @@ type LLMUsage struct {
 // llmAsk routes an LLM request to the appropriate provider based on config and step.
 // For Cloud mode (via job settings), it may override the model based on the user's plan.
 func llmAsk(ctx context.Context, cfg Config, step LLMStep, prompt string, planOverride *string) (string, *LLMUsage, error) {
-	provider := cfg.LLMProvider
+	provider := cmp.Or(cfg.LLMProvider, "acp") // a Config not built by loadConfig has it empty
 	model := selectModel(cfg, step, planOverride)
 
 	slog.Info("llm request", "provider", provider, "step", step, "model", model)

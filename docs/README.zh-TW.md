@@ -109,9 +109,11 @@ sh install-launchd.sh                  # 再裝成 launchd 服務
 
 | 變數 | 預設 | |
 |---|---|---|
-| `API_BASE` | 維護者的網域 | 你的 Worker 網址，一定要設 |
+| `API_BASE` | 無（必填） | 你的 Worker 網址；沒設 runner 不會啟動 |
 | `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` | | 這台 Mac 的 Cloudflare Access service token |
 | `RUNNER_NAME` | hostname | 顯示為工作的處理者，也出現在 runner 狀態 |
+
+`API_BASE` 是必填，沒有預設值。請設成你自己的 Worker 網址（例如 `https://notes.example.com`）。沒設、空白或網址格式不對，`tally run` 會直接報錯結束。
 | `STT_PROVIDER` | `local` | `local` = 這台 Mac 上的 whisper-cli；`groq` = Groq Whisper API（音訊會離開這台 Mac） |
 | `WHISPER_MODEL` / `WHISPER_LANG` | `data/models/ggml-large-v3-turbo.bin` / `zh` | 本機語音轉文字 |
 | `GROQ_API_KEY` / `GROQ_MODEL` | / `whisper-large-v3` | 用 `groq` 時必填 |

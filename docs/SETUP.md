@@ -1,3 +1,5 @@
+> 這是維護者自己的部署紀錄（records.3mi.ai），不是自架指南。自架請看 docs/SELF-HOST.md。
+
 # 上線設定：records.3mi.ai
 
 > 這份是維護者自己的部署紀錄（他的網域、Access team、Mac）。想自己架一套的話請看 [`SELF-HOST.md`](SELF-HOST.md)。
