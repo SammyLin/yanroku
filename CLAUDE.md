@@ -12,7 +12,7 @@ Worker seam (`web/src/`): `app.ts` has the routes, the dispatcher and `createWor
 Web checks (run from `web/`): `npx tsc`, `npm test`, `npm run test:isolation` (two users against every route via `test/fake-identify.ts`; a new route needs a case in `test/isolation.ts`), `npm run test:migrate`.
 
 Runner (run from `runner/`):
-- Run: `go run .` (= `run`: claim jobs from `API_BASE`, default https://records.3mi.ai). Batch upload: `go run . ingest <folder>`. Models: `go run . models`.
+- Run: `go run .` (= `run`: claim jobs from `API_BASE`; API_BASE is required (no default); runner exits if unset). Batch upload: `go run . ingest <folder>`. Models: `go run . models`.
 - Local end-to-end: in `web/`, `npx wrangler d1 migrations apply noteapp --local` then `npx wrangler dev --port 8790` (8787 is taken on this Mac; `.dev.vars` has `DEV_NO_AUTH=1`); run the runner with `API_BASE=http://127.0.0.1:8790`.
 - Update a Mac's runner (pull, build, install where launchd runs it, models, restart): `runner/deploy.sh`. The UI's runner status shows each runner's build (git commit), flagging older ones.
 - Build by hand (binary must not depend on the Go module cache for the sherpa dylibs; never `cp` over a binary macOS has run — it gets SIGKILLed, use a new file + mv):

@@ -154,11 +154,13 @@ cp .env.example .env
 `.env` 至少要改：
 
 ```sh
-API_BASE=https://notes.your-domain.com     # 一定要設！程式預設值是維護者的網域
+API_BASE=https://notes.your-domain.com     # 必填，沒有預設值；沒設 runner 會直接報錯停止
 CF_ACCESS_CLIENT_ID=<這台 Mac 的 token Client ID>
 CF_ACCESS_CLIENT_SECRET=<這台 Mac 的 token Client Secret>
 # RUNNER_NAME=office-mac                   # 選填，預設是 hostname
 ```
+
+`API_BASE` 是必填，沒有預設值。請設成你自己的 Worker 網址（例如 `https://notes.example.com`）。沒設、空白或網址格式不對，`tally run` 會直接報錯結束。
 
 其他 key（都在 `runner/.env.example`）：
 
@@ -308,7 +310,7 @@ npx wrangler deploy --env mine                                 # 再部署 Worke
 | API 回 503 `Access not configured` | `ACCESS_TEAM` / `ACCESS_AUD` 沒設，或改完沒 `npx wrangler deploy --env mine` |
 | API 回 403 `{"detail":"forbidden"}` | Worker 驗 JWT 失敗：AUD 複製錯，或 team name 多打了 `.cloudflareaccess.com` |
 | runner 拿到 HTML 登入頁 | `.env` 的 token 錯，或 token 沒加進 Service Auth policy |
-| runner 連到別人的網域 / 一直 403 | `.env` 沒設 `API_BASE`，程式預設值是維護者的網域 |
+| runner 啟動就結束：`tally: API_BASE is required` | `.env` 沒設 `API_BASE`（沒有預設值），填上你自己的 Worker 網址 |
 | 網頁顯示 runner「離線」 | Mac 睡眠、登出，或 launchd 沒在跑：`launchctl print gui/$(id -u)/ai.3mi.tally-runner`，看 `data/logs/runner.log` |
 | log 出現 `whisper-cli: not found` 之類 | launchd 的 PATH 沒有 `/opt/homebrew/bin`；用 `install-launchd.sh` 重裝（它會設好 PATH） |
 | log 出現 `groq quota exhausted` | Groq 免費額度（每小時音訊秒數）用完。runner 會把轉錄放回佇列、暫停領 STT 工作，期間只做摘要，額度恢復後自動續跑；已完成的片段有快取不會重送。等待，或改 `STT_PROVIDER=local` |

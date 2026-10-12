@@ -14,7 +14,11 @@ git -C "$src" pull --ff-only
 prog=$(launchctl print "$dom/$label" 2>/dev/null | sed -n 's/^[[:space:]]*program = //p' | head -n 1)
 dst=${TALLY_DIR:-$(dirname "${prog:-$src/tally}")}
 echo "installing into $dst"
-[ -f "$dst/.env" ] || echo "warning: $dst/.env is missing (copy .env.example and fill it in)" >&2
+if [ ! -f "$dst/.env" ]; then
+  echo "warning: $dst/.env is missing (copy .env.example and fill it in)" >&2
+elif ! grep -Eq '^API_BASE=[[:space:]]*[^[:space:]]' "$dst/.env"; then
+  echo "warning: API_BASE is empty in $dst/.env; the runner will refuse to start" >&2
+fi
 mkdir -p "$dst/lib"
 
 # Build/copy to a temp name, then mv into place: overwriting a Mach-O file macOS has already run
