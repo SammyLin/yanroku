@@ -10,6 +10,7 @@ func TestSelectModel(t *testing.T) {
 		OpenRouterTitle:   "openai/gpt-5.6-luna",
 		OpenRouterSummary: "openai/gpt-5.6-luna",
 		OpenRouterAsk:     "openai/gpt-5.6-luna",
+		OpenRouterVocab:   "vocab/model",
 	}
 
 	tests := []struct {
@@ -27,6 +28,8 @@ func TestSelectModel(t *testing.T) {
 		{"cleanup ignores plan", StepCleanup, strPtr("pro"), "openai/gpt-5.6-luna"},
 		{"title ignores plan", StepTitle, strPtr("pro"), "openai/gpt-5.6-luna"},
 		{"ask ignores plan", StepAsk, strPtr("pro"), "openai/gpt-5.6-luna"},
+		{"vocab default", StepVocab, nil, "vocab/model"},
+		{"vocab ignores plan", StepVocab, strPtr("pro"), "vocab/model"},
 		{"summary unknown plan", StepSummary, strPtr("enterprise"), "openai/gpt-5.6-luna"},
 	}
 
@@ -65,6 +68,17 @@ func TestProSummaryOverridesDefault(t *testing.T) {
 	noModel := selectModel(cfg, StepSummary, nil)
 	if noModel != "openai/gpt-5.6-luna" {
 		t.Errorf("No plan summary = %v, want openai/gpt-5.6-luna (default)", noModel)
+	}
+}
+
+func TestOpenRouterVocabEnv(t *testing.T) {
+	t.Setenv("OPENROUTER_VOCAB", "")
+	if got := selectModel(loadConfig(), StepVocab, nil); got != "openai/gpt-5.6-luna" {
+		t.Errorf("default vocab model = %q", got)
+	}
+	t.Setenv("OPENROUTER_VOCAB", "acme/vocab-1")
+	if got := selectModel(loadConfig(), StepVocab, nil); got != "acme/vocab-1" {
+		t.Errorf("OPENROUTER_VOCAB vocab model = %q", got)
 	}
 }
 

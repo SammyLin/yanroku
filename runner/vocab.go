@@ -54,12 +54,13 @@ const vocabPrompt = `你在幫使用者整理語音辨識（ASR）用的專有�
 
 {material}`
 
-// suggestVocab runs a vocab job: one ACP call over the scan's recordings, then post the parsed terms.
+// suggestVocab runs a vocab job: one LLM call (LLM_PROVIDER) over the scan's recordings, then post the parsed terms.
 func suggestVocab(ctx context.Context, cfg Config, t *task) error {
-	reply, err := acpAsk(ctx, cfg, vocabPromptFor(t.Vocab, t.Skip, t.Recordings))
+	reply, usage, err := llmAsk(ctx, cfg, StepVocab, vocabPromptFor(t.Vocab, t.Skip, t.Recordings), nil)
 	if err != nil {
 		return err
 	}
+	t.recordUsage(ctx, StepVocab, usage)
 	terms := parseVocab(reply, t.Vocab, t.Skip)
 	slog.Info("vocab: suggestions", "scan", t.ID, "terms", len(terms))
 	return t.post(ctx, "result", map[string]any{"terms": terms}, nil)
