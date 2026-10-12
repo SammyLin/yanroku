@@ -25,4 +25,4 @@ jobs:
           path-to-signatures: signatures/version1/cla.json
           path-to-document: https://github.com/SammyLin/yanroku/blob/main/CLA.md
           branch: cla-signatures
-          allowlist: SammyLin,bot*,dependabot*
+          allowlist: SammyLin,claude,bot*,dependabot*
