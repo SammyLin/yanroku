@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Config is read once at startup from the environment (after loadDotEnv).
@@ -20,6 +21,7 @@ type Config struct {
 	WhisperLang  string // "auto" for detection
 	GroqAPIKey   string
 	GroqModel    string
+	GroqCacheAge time.Duration // groq-cache files older than this are deleted
 	Diarize      bool
 	NumSpeakers  int // 0 = auto
 	ACPAgent     string
@@ -31,6 +33,7 @@ type Config struct {
 	OpenRouterTitle   string // model for title step
 	OpenRouterSummary string // model for summary step; overridden per-plan in Cloud mode
 	OpenRouterAsk     string // model for ask step
+	OpenRouterVocab   string // model for vocab suggestions
 
 	APIBase            string // Worker origin
 	AccessClientID     string // Cloudflare Access service token
@@ -43,6 +46,10 @@ func loadConfig() Config {
 	dataDir := cmp.Or(os.Getenv("DATA_DIR"), "data")
 	n, _ := strconv.Atoi(os.Getenv("NUM_SPEAKERS"))
 	host, _ := os.Hostname()
+	cacheAge, err := time.ParseDuration(os.Getenv("GROQ_CACHE_MAX_AGE"))
+	if err != nil || cacheAge <= 0 {
+		cacheAge = 168 * time.Hour
+	}
 	return Config{
 		DataDir:      dataDir,
 		STTProvider:  cmp.Or(os.Getenv("STT_PROVIDER"), "local"),
@@ -50,6 +57,7 @@ func loadConfig() Config {
 		WhisperLang:  cmp.Or(os.Getenv("WHISPER_LANG"), "zh"),
 		GroqAPIKey:   os.Getenv("GROQ_API_KEY"),
 		GroqModel:    cmp.Or(os.Getenv("GROQ_MODEL"), "whisper-large-v3"),
+		GroqCacheAge: cacheAge,
 		Diarize:      os.Getenv("DIARIZE") != "0",
 		NumSpeakers:  n,
 		ACPAgent:     cmp.Or(os.Getenv("ACP_AGENT"), "claude-agent-acp"),
@@ -61,6 +69,7 @@ func loadConfig() Config {
 		OpenRouterTitle:   cmp.Or(os.Getenv("OPENROUTER_TITLE"), "openai/gpt-5.6-luna"),
 		OpenRouterSummary: cmp.Or(os.Getenv("OPENROUTER_SUMMARY"), "openai/gpt-5.6-luna"),
 		OpenRouterAsk:     cmp.Or(os.Getenv("OPENROUTER_ASK"), "openai/gpt-5.6-luna"),
+		OpenRouterVocab:   cmp.Or(os.Getenv("OPENROUTER_VOCAB"), "openai/gpt-5.6-luna"),
 
 		APIBase:            strings.TrimSpace(os.Getenv("API_BASE")),
 		AccessClientID:     os.Getenv("CF_ACCESS_CLIENT_ID"),
@@ -68,6 +77,51 @@ func loadConfig() Config {
 		RunnerToken:        os.Getenv("RUNNER_TOKEN"),
 		RunnerName:         cmp.Or(os.Getenv("RUNNER_NAME"), host),
 	}
+}
+
+// cloudAPIBase is the only API_BASE a RUNNER_PROFILE=cloud runner accepts.
+const cloudAPIBase = "https://yanroku.app"
+
+// validateProfile checks cfg against RUNNER_PROFILE. "" accepts anything; "cloud" requires Groq STT, OpenRouter LLM,
+// a runner token, the Cloud API_BASE and no Cloudflare Access credentials, so a Cloud runner cannot fall back to
+// local providers or post to a self-host Worker.
+func validateProfile(cfg Config, profile string) error {
+	switch profile {
+	case "":
+		return nil
+	case "cloud":
+	default:
+		return fmt.Errorf("unknown RUNNER_PROFILE %q (want empty or cloud)", profile)
+	}
+	var errs []error
+	if cfg.STTProvider != "groq" {
+		errs = append(errs, fmt.Errorf("STT_PROVIDER must be groq, got %q", cfg.STTProvider))
+	}
+	if cfg.GroqAPIKey == "" {
+		errs = append(errs, errors.New("GROQ_API_KEY is empty"))
+	}
+	if cfg.LLMProvider != "openrouter" {
+		errs = append(errs, fmt.Errorf("LLM_PROVIDER must be openrouter, got %q", cfg.LLMProvider))
+	}
+	if cfg.OpenRouterAPIKey == "" {
+		errs = append(errs, errors.New("OPENROUTER_API_KEY is empty"))
+	}
+	if cfg.RunnerToken == "" {
+		errs = append(errs, errors.New("RUNNER_TOKEN is empty"))
+	}
+	if cfg.APIBase != cloudAPIBase {
+		errs = append(errs, fmt.Errorf("API_BASE must be %s, got %q", cloudAPIBase, cfg.APIBase))
+	}
+	if cfg.AccessClientID != "" {
+		errs = append(errs, errors.New("CF_ACCESS_CLIENT_ID must be empty"))
+	}
+	if cfg.AccessClientSecret != "" {
+		errs = append(errs, errors.New("CF_ACCESS_CLIENT_SECRET must be empty"))
+	}
+	if len(errs) > 0 {
+		return fmt.Errorf("RUNNER_PROFILE=cloud: %w", errors.Join(errs...))
+	}
+	return nil
 }
 
 // needsAPI reports whether cmd talks to the Worker and so needs API_BASE.

@@ -281,6 +281,7 @@ func transcribeGroq(ctx context.Context, cfg Config, wavPath, prompt string) ([]
 	if err := os.MkdirAll(cacheDir, 0o755); err != nil {
 		return nil, err
 	}
+	pruneGroqCache(cfg)
 	var segs []Segment
 	var cached []string
 	for i := 0; float64(i*groqChunkSec) < total; i++ {
@@ -304,6 +305,26 @@ func transcribeGroq(ctx context.Context, cfg Config, wavPath, prompt string) ([]
 		os.Remove(c)
 	}
 	return segs, nil
+}
+
+// pruneGroqCache deletes groq-cache files older than GROQ_CACHE_MAX_AGE: a job that never succeeds would
+// otherwise keep its transcribed chunks forever (the privacy policy promises at most 7 days).
+func pruneGroqCache(cfg Config) {
+	maxAge := cmp.Or(cfg.GroqCacheAge, 168*time.Hour) // a zero Config never wipes the cache
+	dir := filepath.Join(cfg.DataDir, "groq-cache")
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return // no cache yet
+	}
+	for _, e := range entries {
+		fi, err := e.Info()
+		if err != nil || fi.IsDir() || time.Since(fi.ModTime()) <= maxAge {
+			continue
+		}
+		if err := os.Remove(filepath.Join(dir, e.Name())); err != nil {
+			slog.Warn("prune groq cache", "file", e.Name(), "err", err)
+		}
+	}
 }
 
 // groqChunkCached returns the chunk's segments from DATA_DIR/groq-cache/<sha256>.json, or transcribes and caches them.

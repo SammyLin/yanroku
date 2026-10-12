@@ -11,7 +11,8 @@ import (
 	"time"
 )
 
-const openRouterAPI = "https://openrouter.ai/api/v1/chat/completions"
+var openRouterAPI = "https://openrouter.ai/api/v1/chat/completions"
+
 const openRouterTimeout = 10 * time.Minute
 
 type openRouterRequest struct {

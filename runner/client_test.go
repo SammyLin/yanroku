@@ -113,7 +113,7 @@ func TestClientRetry(t *testing.T) {
 
 func fakeACPConfig(t *testing.T) Config {
 	t.Setenv("FAKE_ACP_AGENT", "1") // agent replies "你好，世界" (acp_test.go)
-	return Config{DataDir: t.TempDir(), ACPAgent: os.Args[0] + " -test.run=^$"}
+	return Config{DataDir: t.TempDir(), LLMProvider: "acp", ACPAgent: os.Args[0] + " -test.run=^$"}
 }
 
 func TestRunClaimsSummaries(t *testing.T) {

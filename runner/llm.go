@@ -15,6 +15,7 @@ const (
 	StepTitle   LLMStep = "title"
 	StepSummary LLMStep = "summary"
 	StepAsk     LLMStep = "ask"
+	StepVocab   LLMStep = "vocab"
 )
 
 // LLMUsage tracks token and cost information for an LLM call.
@@ -95,6 +96,8 @@ func selectModel(cfg Config, step LLMStep, planOverride *string) string {
 		return cfg.OpenRouterSummary
 	case StepAsk:
 		return cfg.OpenRouterAsk
+	case StepVocab:
+		return cfg.OpenRouterVocab
 	default:
 		return cfg.OpenRouterSummary
 	}

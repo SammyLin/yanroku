@@ -112,6 +112,7 @@ func run(ctx context.Context, cfg Config) error {
 	}
 	// work dirs of jobs that crashed here (and finished elsewhere); safe since this process owns DATA_DIR/work
 	os.RemoveAll(filepath.Join(cfg.DataDir, "work"))
+	pruneGroqCache(cfg)
 	rev, revAt := buildVersion()
 	slog.Info("runner started", "api", c.base, "runner", c.runner, "version", rev, "built_from", revAt)
 	for ctx.Err() == nil {

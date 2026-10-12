@@ -22,6 +22,9 @@ func main() {
 		fatal(err)
 	}
 	cfg := loadConfig()
+	if err := validateProfile(cfg, os.Getenv("RUNNER_PROFILE")); err != nil {
+		fatal(err)
+	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	context.AfterFunc(ctx, stop) // second signal kills the process during a long shutdown

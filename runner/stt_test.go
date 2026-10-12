@@ -188,3 +188,29 @@ func TestSTTPrompt(t *testing.T) {
 		t.Errorf("prompt is %d tokens", n)
 	}
 }
+
+func TestPruneGroqCache(t *testing.T) {
+	cfg := Config{DataDir: t.TempDir(), GroqCacheAge: 168 * time.Hour}
+	dir := filepath.Join(cfg.DataDir, "groq-cache")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	old, fresh := filepath.Join(dir, "old.json"), filepath.Join(dir, "fresh.json")
+	for f, age := range map[string]time.Duration{old: 8 * 24 * time.Hour, fresh: time.Hour} {
+		if err := os.WriteFile(f, []byte("[]"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		mt := time.Now().Add(-age)
+		if err := os.Chtimes(f, mt, mt); err != nil {
+			t.Fatal(err)
+		}
+	}
+	pruneGroqCache(cfg)
+	if _, err := os.Stat(old); !os.IsNotExist(err) {
+		t.Errorf("8-day-old cache file kept: %v", err)
+	}
+	if _, err := os.Stat(fresh); err != nil {
+		t.Errorf("1-hour-old cache file removed: %v", err)
+	}
+	pruneGroqCache(Config{DataDir: t.TempDir(), GroqCacheAge: time.Hour}) // no cache dir: no-op
+}
