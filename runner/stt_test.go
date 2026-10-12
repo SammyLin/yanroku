@@ -77,13 +77,13 @@ func TestTranscribeGroq(t *testing.T) {
 	defer srv.Close()
 	groqURL = srv.URL
 	cfg := Config{GroqAPIKey: "k", GroqModel: "whisper-large-v3", WhisperLang: "zh", DataDir: t.TempDir()}
-	got, err := transcribeGroq(t.Context(), cfg, wav, zhPrompt)
+	got, billed, err := transcribeGroq(t.Context(), cfg, wav, zhPrompt)
 	if err != nil {
 		t.Fatal(err)
 	}
 	want := []Segment{{1, 2.5, "你好。"}, {601, 602.5, "你好。"}}
-	if fmt.Sprint(got) != fmt.Sprint(want) || calls != 3 {
-		t.Fatalf("got %v (calls %d) want %v", got, calls, want)
+	if fmt.Sprint(got) != fmt.Sprint(want) || calls != 3 || billed != 660 { // the 429 is retried, not billed: 600 + 60
+		t.Fatalf("got %v (calls %d, billed %v) want %v, 660 s", got, calls, billed, want)
 	}
 
 	// quota hit on chunk 2: the retry must only send chunk 2 again
@@ -98,12 +98,14 @@ func TestTranscribeGroq(t *testing.T) {
 		}
 		fmt.Fprint(w, `{"duration":1,"segments":[{"start":1,"end":2,"text":"好。"}]}`)
 	})
-	if _, err := transcribeGroq(t.Context(), cfg, wav, zhPrompt); err == nil {
-		t.Fatal("want quota error")
+	// a failed run still reports the chunk Groq charged for (1 s billed as Groq's 10 s minimum)
+	if _, billed, err := transcribeGroq(t.Context(), cfg, wav, zhPrompt); err == nil || billed != groqMinBilledSec {
+		t.Fatalf("want quota error and %d s billed, got %v, %v", groqMinBilledSec, err, billed)
 	}
 	calls, quota = 0, false
-	if got, err = transcribeGroq(t.Context(), cfg, wav, zhPrompt); err != nil || calls != 1 || len(got) != 2 {
-		t.Fatalf("resume: got %v err %v calls %d, want 2 segments from 1 call", got, err, calls)
+	// the cached chunk costs nothing the second time
+	if got, billed, err = transcribeGroq(t.Context(), cfg, wav, zhPrompt); err != nil || calls != 1 || len(got) != 2 || billed != groqMinBilledSec {
+		t.Fatalf("resume: got %v err %v calls %d billed %v, want 2 segments from 1 call, %d s", got, err, calls, billed, groqMinBilledSec)
 	}
 	if left, _ := filepath.Glob(filepath.Join(cfg.DataDir, "groq-cache", "*")); len(left) != 0 {
 		t.Fatalf("cache not cleaned: %v", left)

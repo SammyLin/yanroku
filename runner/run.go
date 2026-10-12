@@ -80,7 +80,7 @@ func (t *task) setStatus(ctx context.Context, s string) error {
 	return t.heartbeat(ctx)
 }
 
-// recordUsage posts LLM usage data to the Worker for cost tracking (Cloud mode only; self-host ignores it).
+// recordUsage posts LLM (and Groq STT) usage to the Worker for cost tracking (Cloud mode only; self-host ignores it).
 func (t *task) recordUsage(ctx context.Context, step LLMStep, usage *LLMUsage) {
 	if usage == nil {
 		return
@@ -93,6 +93,7 @@ func (t *task) recordUsage(ctx context.Context, step LLMStep, usage *LLMUsage) {
 		"completion_tokens": usage.CompletionTokens,
 		"total_tokens":      usage.TotalTokens,
 		"cost_usd":          usage.TotalCost,
+		"audio_seconds":     usage.AudioSeconds,
 	}
 	if err := t.post(ctx, "usage", body, nil); err != nil {
 		slog.Warn("record llm usage", "kind", t.Kind, "id", t.ID, "step", step, "err", err)

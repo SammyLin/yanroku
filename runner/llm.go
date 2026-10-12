@@ -16,6 +16,7 @@ const (
 	StepSummary LLMStep = "summary"
 	StepAsk     LLMStep = "ask"
 	StepVocab   LLMStep = "vocab"
+	StepSTT     LLMStep = "stt" // Groq transcription: AudioSeconds billed, no tokens
 )
 
 // LLMUsage tracks token and cost information for an LLM call.
@@ -26,6 +27,7 @@ type LLMUsage struct {
 	TotalCost        float64 // USD
 	Model            string
 	Provider         string
+	AudioSeconds     float64 // StepSTT only
 }
 
 // llmAsk routes an LLM request to the appropriate provider based on config and step.
