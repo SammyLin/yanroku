@@ -36,19 +36,25 @@ type Segment struct {
 // and an instruction ("請使用標點符號") then shows up as a subtitle. dropPromptEcho removes such echoes.
 const zhPrompt = "好，那我們開始今天的會議。這一季的 roadmap 跟 API 進度，大家有什麼想法？"
 
-// transcribe runs STT in lang (zh|en|ja|auto; "" = WHISPER_LANG) with vocab hinted in the prompt.
-func transcribe(ctx context.Context, cfg Config, wavPath, lang string, vocab []string) ([]Segment, error) {
+// transcribe runs STT in lang (zh|en|ja|auto; "" = WHISPER_LANG) with vocab hinted in the prompt. billed is the audio
+// seconds Groq charged in this call (0 for local whisper), also when it fails part-way: those chunks are paid for.
+func transcribe(ctx context.Context, cfg Config, wavPath, lang string, vocab []string) (segs []Segment, billed float64, err error) {
 	cfg.WhisperLang = cmp.Or(lang, cfg.WhisperLang)
 	prompt := sttPrompt(cfg.WhisperLang, vocab)
-	var segs []Segment
-	var err error
 	if cfg.STTProvider == "groq" {
-		segs, err = transcribeGroq(ctx, cfg, wavPath, prompt)
+		segs, billed, err = transcribeGroq(ctx, cfg, wavPath, prompt)
 	} else {
 		segs, err = transcribeLocal(ctx, cfg, wavPath, prompt)
 	}
-	return dropPromptEcho(segs, prompt, vocab), err
+	return dropPromptEcho(segs, prompt, vocab), billed, err
 }
+
+// groqUSDPerHour: Groq's audio price per model (https://groq.com/pricing), for Cloud's cost ledger.
+// ponytail: hard-coded; an unknown model reports its seconds at $0, update the table when Groq changes prices
+var groqUSDPerHour = map[string]float64{"whisper-large-v3": 0.111, "whisper-large-v3-turbo": 0.04}
+
+// groqMinBilledSec: Groq bills every request for at least 10 s of audio.
+const groqMinBilledSec = 10
 
 // dropPromptEcho removes segments whose text is just (part of) the prompt. A segment that is one vocab term
 // (someone saying "Delta。") is real speech, not an echo, and is kept.
@@ -263,23 +269,23 @@ const groqChunkSec = 600 // 10 min of 16k mono FLAC is well under Groq's 25 MB l
 // the segment muxer leaves FLAC headers without (or with the whole file's) duration, Groq bills by that
 // header, and a 65 min file then cost ~7500 s per attempt — over the 7200 s/hour free quota on every retry.
 // Finished chunks are cached by content, so a quota pause resumes instead of re-sending (and re-billing) them.
-func transcribeGroq(ctx context.Context, cfg Config, wavPath, prompt string) ([]Segment, error) {
+func transcribeGroq(ctx context.Context, cfg Config, wavPath, prompt string) (_ []Segment, billed float64, _ error) {
 	if cfg.GroqAPIKey == "" {
-		return nil, errors.New("GROQ_API_KEY is not set")
+		return nil, 0, errors.New("GROQ_API_KEY is not set")
 	}
 	fi, err := os.Stat(wavPath)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	total := float64(fi.Size()-44) / 32000 // 16 kHz mono s16 after the 44-byte header
 	dir, err := os.MkdirTemp(filepath.Dir(wavPath), "groq")
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer os.RemoveAll(dir)
 	cacheDir := filepath.Join(cfg.DataDir, "groq-cache")
 	if err := os.MkdirAll(cacheDir, 0o755); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	pruneGroqCache(cfg)
 	var segs []Segment
@@ -290,11 +296,12 @@ func transcribeGroq(ctx context.Context, cfg Config, wavPath, prompt string) ([]
 		cmd := exec.CommandContext(ctx, tool("ffmpeg"), "-nostdin", "-loglevel", "error", "-ss", strconv.Itoa(i*groqChunkSec),
 			"-t", strconv.Itoa(groqChunkSec), "-i", wavPath, "-ar", "16000", "-ac", "1", "-c:a", "flac", chunk)
 		if out, err := cmd.CombinedOutput(); err != nil {
-			return nil, fmt.Errorf("ffmpeg chunk %d: %w: %s", i, err, tail(out))
+			return nil, billed, fmt.Errorf("ffmpeg chunk %d: %w: %s", i, err, tail(out))
 		}
-		got, cache, err := groqChunkCached(ctx, cfg, chunk, cacheDir, prompt)
+		got, cache, sec, err := groqChunkCached(ctx, cfg, chunk, cacheDir, prompt)
+		billed += sec
 		if err != nil {
-			return nil, fmt.Errorf("groq chunk %d/%d: %w", i+1, int(math.Ceil(total/groqChunkSec)), err)
+			return nil, billed, fmt.Errorf("groq chunk %d/%d: %w", i+1, int(math.Ceil(total/groqChunkSec)), err)
 		}
 		cached = append(cached, cache)
 		for _, s := range got {
@@ -304,7 +311,7 @@ func transcribeGroq(ctx context.Context, cfg Config, wavPath, prompt string) ([]
 	for _, c := range cached {
 		os.Remove(c)
 	}
-	return segs, nil
+	return segs, billed, nil
 }
 
 // pruneGroqCache deletes groq-cache files older than GROQ_CACHE_MAX_AGE: a job that never succeeds would
@@ -329,25 +336,26 @@ func pruneGroqCache(cfg Config) {
 
 // groqChunkCached returns the chunk's segments from DATA_DIR/groq-cache/<sha256>.json, or transcribes and caches them.
 // The key covers language and prompt too, so a re-transcribe with other settings doesn't reuse a paused run's chunks.
-func groqChunkCached(ctx context.Context, cfg Config, chunk, cacheDir, prompt string) ([]Segment, string, error) {
+// billed is what Groq charged for this chunk: 0 from the cache.
+func groqChunkCached(ctx context.Context, cfg Config, chunk, cacheDir, prompt string) (_ []Segment, cache string, billed float64, _ error) {
 	b, err := os.ReadFile(chunk)
 	if err != nil {
-		return nil, "", err
+		return nil, "", 0, err
 	}
 	sum := sha256.Sum256(fmt.Appendf(b, "\x00%s\x00%s", cfg.WhisperLang, prompt))
-	cache := filepath.Join(cacheDir, hex.EncodeToString(sum[:])+".json")
+	cache = filepath.Join(cacheDir, hex.EncodeToString(sum[:])+".json")
 	if data, err := os.ReadFile(cache); err == nil {
 		var segs []Segment
 		if json.Unmarshal(data, &segs) == nil {
-			return segs, cache, nil
+			return segs, cache, 0, nil
 		}
 	}
-	segs, _, err := groqChunk(ctx, cfg, chunk, prompt)
+	segs, dur, err := groqChunk(ctx, cfg, chunk, prompt)
 	if err != nil {
-		return nil, "", err
+		return nil, "", 0, err
 	}
 	data, _ := json.Marshal(segs)
-	return segs, cache, os.WriteFile(cache, data, 0o644)
+	return segs, cache, max(dur, groqMinBilledSec), os.WriteFile(cache, data, 0o644)
 }
 
 type groqSegment struct {

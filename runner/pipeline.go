@@ -132,7 +132,11 @@ func processRecording(ctx context.Context, cfg Config, t *task) error {
 		return err
 	}
 	t2 := time.Now()
-	segs, err := transcribe(ctx, cfg, wav, t.Language, t.Settings.Vocab)
+	segs, billed, err := transcribe(ctx, cfg, wav, t.Language, t.Settings.Vocab)
+	if billed > 0 { // paid for even when a later chunk failed
+		t.recordUsage(ctx, StepSTT, &LLMUsage{Provider: "groq", Model: cfg.GroqModel, AudioSeconds: billed,
+			TotalCost: billed / 3600 * groqUSDPerHour[cfg.GroqModel]})
+	}
 	if err != nil {
 		return fmt.Errorf("transcribe: %w", err)
 	}
