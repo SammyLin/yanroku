@@ -22,6 +22,9 @@ func main() {
 		fatal(err)
 	}
 	cfg := loadConfig()
+	if err := initSentry(os.Getenv("SENTRY_DSN")); err != nil {
+		fatal(err)
+	}
 	if err := validateProfile(cfg, os.Getenv("RUNNER_PROFILE")); err != nil {
 		fatal(err)
 	}
@@ -65,6 +68,7 @@ func main() {
 }
 
 func fatal(err error) {
+	reportSentry("fatal: "+err.Error(), nil) // synchronous: the process exits next
 	fmt.Fprintln(os.Stderr, "tally:", err)
 	os.Exit(1)
 }
