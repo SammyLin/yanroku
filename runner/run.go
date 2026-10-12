@@ -46,7 +46,8 @@ type jobSettings struct {
 	About        string   `json:"about"` // About..Me: summary only
 	ContentFocus string   `json:"content_focus"`
 	Instructions string   `json:"instructions"`
-	Me           string   `json:"me"` // the user's speaker name
+	Me           string   `json:"me"`   // the user's speaker name
+	Plan         *string  `json:"plan"` // Cloud: user's plan (free|pro) for model selection
 }
 
 type task struct {
@@ -77,6 +78,25 @@ func (t *task) heartbeat(ctx context.Context) error {
 func (t *task) setStatus(ctx context.Context, s string) error {
 	t.status.Store(&s)
 	return t.heartbeat(ctx)
+}
+
+// recordUsage posts LLM usage data to the Worker for cost tracking (Cloud mode only; self-host ignores it).
+func (t *task) recordUsage(ctx context.Context, step LLMStep, usage *LLMUsage) {
+	if usage == nil {
+		return
+	}
+	body := map[string]any{
+		"step":              string(step),
+		"provider":          usage.Provider,
+		"model":             usage.Model,
+		"prompt_tokens":     usage.PromptTokens,
+		"completion_tokens": usage.CompletionTokens,
+		"total_tokens":      usage.TotalTokens,
+		"cost_usd":          usage.TotalCost,
+	}
+	if err := t.post(ctx, "usage", body, nil); err != nil {
+		slog.Warn("record llm usage", "kind", t.Kind, "id", t.ID, "step", step, "err", err)
+	}
 }
 
 // sttPausedUntil: while Groq's quota is exhausted this runner only claims summaries. Only the run loop goroutine
@@ -150,9 +170,12 @@ func runJob(stop context.Context, cfg Config, c *client, j *job) {
 		err = safely(func() error { return processRecording(ctx, cfg, t) })
 	case "summary":
 		err = safely(func() error {
-			md, err := summarize(ctx, cfg, t.TemplateID, t.Language, t.Transcript, t.Settings)
+			md, usage, err := summarize(ctx, cfg, t.TemplateID, t.Language, t.Transcript, t.Settings)
 			if err != nil {
 				return err
+			}
+			if usage != nil {
+				t.recordUsage(ctx, StepSummary, usage)
 			}
 			return t.post(ctx, "result", map[string]any{"content_md": md}, nil)
 		})

@@ -230,9 +230,12 @@ func publish(ctx context.Context, cfg Config, t *task, duration float64, segs []
 	for _, r := range rows {
 		text.WriteString(r.text + "\n")
 	}
-	if title, err := makeTitle(ctx, cfg, text.String()); err != nil {
+	if title, usage, err := makeTitle(ctx, cfg, t, text.String()); err != nil {
 		slog.Error("title failed", "recording", t.ID, "err", err)
 	} else if title != "" {
+		if usage != nil {
+			t.recordUsage(ctx, StepTitle, usage)
+		}
 		if err := t.post(ctx, "clean", map[string]any{"items": []any{}, "title": title}, nil); err != nil {
 			return fmt.Errorf("title: %w", err)
 		}
@@ -324,7 +327,7 @@ type segRow struct {
 	text string
 }
 
-// cleanup proofreads rows via ACP in batches, posting each batch and updating rows[i].text in place.
+// cleanup proofreads rows via LLM in batches, posting each batch and updating rows[i].text in place.
 // A failed batch is logged and skipped.
 func cleanup(ctx context.Context, cfg Config, t *task, rows []segRow) error {
 	format := func(rs []segRow) string {
@@ -339,13 +342,16 @@ func cleanup(ctx context.Context, cfg Config, t *task, rows []segRow) error {
 		slog.Info("cleanup", "recording", t.ID, "batch", i/cleanupBatch+1, "of", (len(rows)+cleanupBatch-1)/cleanupBatch)
 		prompt := buildCleanupPrompt(t.Settings.Vocab, format(rows[max(0, i-3):i]), format(batch),
 			format(rows[min(i+cleanupBatch, len(rows)):min(i+cleanupBatch+3, len(rows))]))
-		reply, err := acpAsk(ctx, cfg, prompt)
+		reply, usage, err := llmAsk(ctx, cfg, StepCleanup, prompt, t.Settings.Plan)
 		if err != nil {
 			if ctx.Err() != nil {
 				return err
 			}
 			slog.Error("cleanup batch failed", "recording", t.ID, "batch", i/cleanupBatch, "err", err)
 			continue
+		}
+		if usage != nil {
+			t.recordUsage(ctx, StepCleanup, usage)
 		}
 		want := map[int64]bool{}
 		for _, r := range batch {
@@ -377,32 +383,32 @@ func buildCleanupPrompt(vocab []string, before, lines, after string) string {
 	return strings.NewReplacer("{vocab}", v, "{before}", before, "{lines}", lines, "{after}", after).Replace(cleanupPrompt)
 }
 
-// makeTitle asks ACP for a short zh-TW title; "" when the transcript is too short to title.
-func makeTitle(ctx context.Context, cfg Config, text string) (string, error) {
+// makeTitle asks LLM for a short zh-TW title; "" when the transcript is too short to title.
+func makeTitle(ctx context.Context, cfg Config, t *task, text string) (string, *LLMUsage, error) {
 	r := []rune(strings.TrimSpace(text))
 	if len(r) < 20 { // whisper hallucinates on silence; don't title noise
-		return "", nil
+		return "", nil, nil
 	}
-	reply, err := acpAsk(ctx, cfg, strings.Replace(titlePrompt, "{transcript}", string(r[:min(len(r), 3000)]), 1))
+	reply, usage, err := llmAsk(ctx, cfg, StepTitle, strings.Replace(titlePrompt, "{transcript}", string(r[:min(len(r), 3000)]), 1), t.Settings.Plan)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	first, _, _ := strings.Cut(stripFence(reply), "\n")
 	nt := strings.TrimSpace(strings.Trim(titlePfxRe.ReplaceAllString(first, ""), " #*`\"'「」『』《》"))
-	return string([]rune(nt)[:min(len([]rune(nt)), 30)]), nil // prompt asks for ≤20; English words count per letter here
+	return string([]rune(nt)[:min(len([]rune(nt)), 30)]), usage, nil // prompt asks for ≤20; English words count per letter here
 }
 
-// summarize fills the template with the Worker-built transcript ("[mm:ss] Name: text" lines) and asks ACP.
-func summarize(ctx context.Context, cfg Config, templateID, lang, transcript string, s jobSettings) (string, error) {
+// summarize fills the template with the Worker-built transcript ("[mm:ss] Name: text" lines) and asks LLM.
+func summarize(ctx context.Context, cfg Config, templateID, lang, transcript string, s jobSettings) (string, *LLMUsage, error) {
 	prompt, err := summaryPrompt(templateID, lang, transcript, s)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
-	reply, err := acpAsk(ctx, cfg, prompt)
+	reply, usage, err := llmAsk(ctx, cfg, StepSummary, prompt, s.Plan)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
-	return stripFence(reply), nil
+	return stripFence(reply), usage, nil
 }
 
 // summaryPrompt fills the template and puts the user's preferences (non-empty parts only) before 逐字稿：.

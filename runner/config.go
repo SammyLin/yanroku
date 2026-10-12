@@ -22,6 +22,13 @@ type Config struct {
 	ACPAgent     string
 	ACPModel     string // ANTHROPIC_MODEL for the agent; a plain alias keeps it off the global "opus[1m]" (needs usage credits)
 
+	LLMProvider       string // "acp" (default) or "openrouter"
+	OpenRouterAPIKey  string
+	OpenRouterCleanup string // model for cleanup step
+	OpenRouterTitle   string // model for title step
+	OpenRouterSummary string // model for summary step; overridden per-plan in Cloud mode
+	OpenRouterAsk     string // model for ask step
+
 	APIBase            string // Worker origin
 	AccessClientID     string // Cloudflare Access service token
 	AccessClientSecret string
@@ -44,6 +51,13 @@ func loadConfig() Config {
 		NumSpeakers:  n,
 		ACPAgent:     cmp.Or(os.Getenv("ACP_AGENT"), "claude-agent-acp"),
 		ACPModel:     cmp.Or(os.Getenv("ACP_MODEL"), "opus"),
+
+		LLMProvider:       cmp.Or(os.Getenv("LLM_PROVIDER"), "acp"),
+		OpenRouterAPIKey:  os.Getenv("OPENROUTER_API_KEY"),
+		OpenRouterCleanup: cmp.Or(os.Getenv("OPENROUTER_CLEANUP"), "openai/gpt-5.6-luna"),
+		OpenRouterTitle:   cmp.Or(os.Getenv("OPENROUTER_TITLE"), "openai/gpt-5.6-luna"),
+		OpenRouterSummary: cmp.Or(os.Getenv("OPENROUTER_SUMMARY"), "openai/gpt-5.6-luna"),
+		OpenRouterAsk:     cmp.Or(os.Getenv("OPENROUTER_ASK"), "openai/gpt-5.6-luna"),
 
 		APIBase:            cmp.Or(os.Getenv("API_BASE"), "https://records.3mi.ai"),
 		AccessClientID:     os.Getenv("CF_ACCESS_CLIENT_ID"),

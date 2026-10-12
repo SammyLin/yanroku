@@ -79,9 +79,12 @@ func answer(ctx context.Context, cfg Config, t *task) error {
 	}
 	var picked []int64
 	if len(t.Index) > 0 {
-		reply, err := acpAsk(ctx, cfg, strings.NewReplacer("{today}", t.Today, "{question}", t.Question, "{index}", index.String()).Replace(askPickPrompt))
+		reply, usage, err := llmAsk(ctx, cfg, StepAsk, strings.NewReplacer("{today}", t.Today, "{question}", t.Question, "{index}", index.String()).Replace(askPickPrompt), t.Settings.Plan)
 		if err != nil {
 			return err
+		}
+		if usage != nil {
+			t.recordUsage(ctx, StepAsk, usage)
 		}
 		picked = parsePicked(reply, valid, askMaxPicks)
 	}
@@ -103,9 +106,12 @@ func answer(ctx context.Context, cfg Config, t *task) error {
 		}
 	}
 
-	reply, err := acpAsk(ctx, cfg, answerPrompt(t.Question, t.Today, docs))
+	reply, usage, err := llmAsk(ctx, cfg, StepAsk, answerPrompt(t.Question, t.Today, docs), t.Settings.Plan)
 	if err != nil {
 		return err
+	}
+	if usage != nil {
+		t.recordUsage(ctx, StepAsk, usage)
 	}
 	sources := make([]int64, 0, len(docs)) // [] rather than null when nothing was relevant
 	for _, d := range docs {
