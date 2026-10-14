@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Yanroku</title>
-<meta name="description" content="Yanroku 言錄 — 個人語音筆記：錄音與匯入音訊，自動轉成分講者的逐字稿與摘要。">
+<script src="/i18n.js"></script>
+<meta name="description" content="Yanroku 言錄 — 個人語音筆記：錄音與匯入音訊，自動轉成分講者的逐字稿與摘要。" data-i18n-content>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -42,6 +43,11 @@
   color-scheme:light dark;
   font-family:var(--sans);color:var(--ink);background:var(--paper);font-size:15px;line-height:1.6;
   -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility
+}
+/* Japanese UI: Japanese glyph forms (the default stacks prefer Traditional Chinese fonts) */
+html:lang(ja){
+  --display:"Nunito","Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",system-ui,sans-serif;
+  --sans:system-ui,-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Noto Sans CJK JP","Yu Gothic",sans-serif
 }
 /* navy chrome: nav, list pane, top bar + drawer, player, dialogs, and the logo mark's <defs> */
 .nav,.pane,.topbar,.player,dialog,.lib,.k-defs{color-scheme:dark;color:var(--ink)}
@@ -453,7 +459,7 @@ button.linkbtn:hover{background:none;color:var(--ink)}
 </style>
 </head>
 <body>
-<div class="alert" id="alert" role="alert" hidden><span id="alertMsg"></span><button type="button" onclick="location.reload()">重新整理</button></div>
+<div class="alert" id="alert" role="alert" hidden><span id="alertMsg"></span><button type="button" onclick="location.reload()" data-i18n>重新整理</button></div>
 <svg class="k-defs" width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
   <linearGradient id="k-wave" gradientUnits="userSpaceOnUse" x1="384" y1="0" x2="468" y2="0"><stop offset="0" style="stop-color:var(--k-wave)"/><stop offset="1" stop-color="currentColor"/></linearGradient>
   <symbol id="k-mark" viewBox="88 258 852 486"><g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="44">
@@ -464,22 +470,22 @@ button.linkbtn:hover{background:none;color:var(--ink)}
 </defs></svg>
 <div class="app" id="app">
   <header class="topbar">
-    <button type="button" class="ghost" id="menuBtn" aria-label="錄音清單" aria-expanded="false" aria-controls="lib"></button>
-    <span class="tb-title"><svg class="mark" aria-hidden="true" focusable="false"><use href="#k-mark"/></svg><span class="lk">Yanroku<span>言錄</span></span></span>
-    <button type="button" class="rchip" data-runners aria-label="Runner 狀態"></button>
-    <button type="button" class="rec" data-rec>錄音</button>
+    <button type="button" class="ghost" id="menuBtn" aria-label="錄音清單" data-i18n-aria-label aria-expanded="false" aria-controls="lib"></button>
+    <span class="tb-title"><svg class="mark" aria-hidden="true" focusable="false"><use href="#k-mark"/></svg><span class="lk">Yanroku<span data-i18n>言錄</span></span></span>
+    <button type="button" class="rchip" data-runners aria-label="Runner 狀態" data-i18n-aria-label></button>
+    <button type="button" class="rec" data-rec data-i18n>錄音</button>
     <div data-user hidden></div>
   </header>
   <div class="scrim" id="scrim"></div>
-  <aside class="lib" id="lib" aria-label="錄音清單">
-    <nav class="nav" aria-label="資料夾">
+  <aside class="lib" id="lib" aria-label="錄音清單" data-i18n-aria-label>
+    <nav class="nav" aria-label="資料夾" data-i18n-aria-label>
       <div class="nav-head">
-        <div class="brand"><svg class="mark" aria-hidden="true" focusable="false"><use href="#k-mark"/></svg><h1 class="lk">Yanroku<span>言錄</span></h1></div>
+        <div class="brand"><svg class="mark" aria-hidden="true" focusable="false"><use href="#k-mark"/></svg><h1 class="lk">Yanroku<span data-i18n>言錄</span></h1></div>
         <div class="nav-acts">
-          <button type="button" class="rec" data-rec>錄音</button>
-          <button type="button" data-import>匯入</button>
+          <button type="button" class="rec" data-rec data-i18n>錄音</button>
+          <button type="button" data-import data-i18n>匯入</button>
         </div>
-        <button type="button" class="rchip" data-runners aria-label="Runner 狀態"></button>
+        <button type="button" class="rchip" data-runners aria-label="Runner 狀態" data-i18n-aria-label></button>
         <div data-user hidden></div>
         <input id="fileInput" class="sr" type="file" multiple tabindex="-1" aria-hidden="true"
           accept="audio/*,video/*,.ogg,.opus,.oga,.rmvb,.rm,.divx,.ts,.m2ts,.3gp,.f4v,.asr">
@@ -488,8 +494,8 @@ button.linkbtn:hover{background:none;color:var(--ink)}
     </nav>
     <section class="pane">
       <div class="pane-head">
-        <div class="search"><label class="sr" for="q">搜尋</label><input id="q" type="search" placeholder="搜尋標題或逐字稿內容"></div>
-        <div class="pane-sub"><div class="crumbs" id="crumbs" aria-label="目前位置"></div><span class="lcount" id="lcount"></span></div>
+        <div class="search"><label class="sr" for="q" data-i18n>搜尋</label><input id="q" type="search" placeholder="搜尋標題或逐字稿內容" data-i18n-placeholder></div>
+        <div class="pane-sub"><div class="crumbs" id="crumbs" aria-label="目前位置" data-i18n-aria-label></div><span class="lcount" id="lcount"></span></div>
       </div>
       <ul class="list" id="list" aria-live="polite"></ul>
     </section>
@@ -499,56 +505,56 @@ button.linkbtn:hover{background:none;color:var(--ink)}
 <div class="ctx" id="ctx" role="menu" hidden></div>
 
 <dialog id="runnersDlg" aria-labelledby="runnersTitle">
-  <h2 id="runnersTitle">Runner 狀態</h2>
+  <h2 id="runnersTitle" data-i18n>Runner 狀態</h2>
   <p class="muted" id="runnersQueue"></p>
   <ul id="runnersList"></ul>
-  <p class="muted" style="font-size:.8rem">Runner 是在 Mac 上處理轉文字、分辨說話者與摘要的程式。沒有 runner 在線時，新的錄音會排隊，等 runner 上線後自動處理。</p>
-  <div class="row" style="margin-top:12px"><button type="button" autofocus onclick="this.closest('dialog').close()">關閉</button></div>
+  <p class="muted" style="font-size:.8rem" data-i18n>Runner 是在 Mac 上處理轉文字、分辨說話者與摘要的程式。沒有 runner 在線時，新的錄音會排隊，等 runner 上線後自動處理。</p>
+  <div class="row" style="margin-top:12px"><button type="button" autofocus onclick="this.closest('dialog').close()" data-i18n>關閉</button></div>
 </dialog>
 
 <dialog id="capDlg" aria-labelledby="capTitle">
-  <h2 id="capTitle">預覽 Prompt</h2>
+  <h2 id="capTitle" data-i18n>預覽 Prompt</h2>
   <p class="cap-est" id="capDlgEst"></p>
-  <textarea id="capText" readonly aria-label="Prompt 內容"></textarea>
+  <textarea id="capText" readonly aria-label="Prompt 內容" data-i18n-aria-label></textarea>
   <div class="row" style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end">
-    <button type="button" onclick="this.closest('dialog').close()">關閉</button>
-    <button type="button" id="capDlgDl">下載 .md</button>
-    <button type="button" class="primary" id="capDlgCopy">複製</button>
+    <button type="button" onclick="this.closest('dialog').close()" data-i18n>關閉</button>
+    <button type="button" id="capDlgDl" data-i18n>下載 .md</button>
+    <button type="button" class="primary" id="capDlgCopy" data-i18n>複製</button>
   </div>
 </dialog>
 
 <dialog id="pick" aria-labelledby="pickTitle">
-  <h2 id="pickTitle">移到資料夾</h2>
+  <h2 id="pickTitle" data-i18n>移到資料夾</h2>
   <div class="picklist" id="pickList"></div>
-  <div class="row" style="margin-top:12px"><button type="button" id="pickCancel">取消</button></div>
+  <div class="row" style="margin-top:12px"><button type="button" id="pickCancel" data-i18n>取消</button></div>
 </dialog>
 
 <dialog id="recDlg" class="rec-dlg" aria-labelledby="recTitle">
-  <h2 id="recTitle"><span class="dot" aria-hidden="true"></span>錄音中</h2>
+  <h2 id="recTitle"><span class="dot" aria-hidden="true"></span><span data-i18n>錄音中</span></h2>
   <div class="rec-time" id="recTime" role="timer">00:00</div>
   <canvas class="wave" id="recWave" aria-hidden="true"></canvas>
-  <p class="muted" style="font-size:.85rem;margin:0 0 10px">錄音時請保持此頁面開啟，停止後會自動上傳。</p>
-  <label class="rec-lang">語言 <select id="recLang"></select></label>
-  <div class="row"><button type="button" id="recCancel">捨棄</button><button type="button" class="primary" id="recStop">停止並上傳</button></div>
+  <p class="muted" style="font-size:.85rem;margin:0 0 10px" data-i18n>錄音時請保持此頁面開啟，停止後會自動上傳。</p>
+  <label class="rec-lang"><span data-i18n>語言</span> <select id="recLang"></select></label>
+  <div class="row"><button type="button" id="recCancel" data-i18n>捨棄</button><button type="button" class="primary" id="recStop" data-i18n>停止並上傳</button></div>
 </dialog>
 
 <dialog id="spk" aria-labelledby="spkTitle">
   <form id="spkForm">
-    <h2 id="spkTitle">講者名稱</h2>
-    <label for="spkName" class="sr">名稱</label>
+    <h2 id="spkTitle" data-i18n>講者名稱</h2>
+    <label for="spkName" class="sr" data-i18n>名稱</label>
     <input id="spkName" type="text" required autocomplete="off" maxlength="80">
     <div>
-      <div class="lbl" id="recentLbl">最近使用</div>
+      <div class="lbl" id="recentLbl" data-i18n>最近使用</div>
       <div class="recent" id="spkRecent" role="group" aria-labelledby="recentLbl"></div>
     </div>
     <fieldset>
-      <legend>套用到</legend>
-      <label><input type="radio" name="scope" value="segment"> 僅此段落</label>
-      <label><input type="radio" name="scope" value="all" checked> 此講者的所有段落</label>
+      <legend data-i18n>套用到</legend>
+      <label><input type="radio" name="scope" value="segment"> <span data-i18n>僅此段落</span></label>
+      <label><input type="radio" name="scope" value="all" checked> <span data-i18n>此講者的所有段落</span></label>
     </fieldset>
     <div class="row">
-      <button type="button" id="spkCancel">取消</button>
-      <button type="submit" class="primary">儲存</button>
+      <button type="button" id="spkCancel" data-i18n>取消</button>
+      <button type="submit" class="primary" data-i18n>儲存</button>
     </div>
   </form>
 </dialog>
@@ -557,57 +563,63 @@ button.linkbtn:hover{background:none;color:var(--ink)}
   <form method="dialog">
     <h2 id="langTitle"></h2>
     <p class="muted" id="langNote" style="margin:0;font-size:.88rem"></p>
-    <label class="fld"><span class="lbl">轉錄語言</span><select id="langPick"></select></label>
-    <div class="row"><button type="button" onclick="this.closest('dialog').close()">取消</button><button type="submit" class="primary" value="ok" id="langOk"></button></div>
+    <label class="fld"><span class="lbl" data-i18n>轉錄語言</span><select id="langPick"></select></label>
+    <div class="row"><button type="button" onclick="this.closest('dialog').close()" data-i18n>取消</button><button type="submit" class="primary" value="ok" id="langOk"></button></div>
   </form>
 </dialog>
 
 <dialog id="setDlg" class="set-dlg" aria-labelledby="setTitle">
   <form id="setForm">
     <div class="set-body">
-      <h2 id="setTitle">設定</h2>
+      <h2 id="setTitle" data-i18n>設定</h2>
+      <section class="set-sec"><h3 data-i18n>介面</h3>
+        <label class="fld"><span class="lbl" data-i18n>介面語言</span><select id="uiLang"><option value="zh-Hant">中文</option><option value="en">English</option><option value="ja">日本語</option></select></label>
+      </section>
       <section class="set-sec"><h3>AI</h3>
-        <label class="fld"><span class="lbl">關於我</span><textarea name="about" maxlength="500" rows="2" placeholder="職稱、領域、錄音用途"></textarea></label>
-        <label class="fld"><span class="lbl">內容重點</span><textarea name="content_focus" maxlength="500" rows="2"></textarea></label>
-        <label class="fld"><span class="lbl">自訂指示</span><textarea name="instructions" maxlength="500" rows="2"></textarea></label>
-        <p class="hint">只用於產生摘要。</p>
+        <label class="fld"><span class="lbl" data-i18n>關於我</span><textarea name="about" maxlength="500" rows="2" placeholder="職稱、領域、錄音用途" data-i18n-placeholder></textarea></label>
+        <label class="fld"><span class="lbl" data-i18n>內容重點</span><textarea name="content_focus" maxlength="500" rows="2"></textarea></label>
+        <label class="fld"><span class="lbl" data-i18n>自訂指示</span><textarea name="instructions" maxlength="500" rows="2"></textarea></label>
+        <p class="hint" data-i18n>只用於產生摘要。</p>
       </section>
-      <section class="set-sec"><h3>語言與逐字稿</h3>
-        <label class="fld"><span class="lbl">預設轉錄語言</span><select name="stt_lang"></select></label>
-        <label class="chk"><input type="checkbox" name="cleanup"> 自動整理逐字稿（錯字、標點）</label>
+      <section class="set-sec"><h3 data-i18n>語言與逐字稿</h3>
+        <label class="fld"><span class="lbl" data-i18n>預設轉錄語言</span><select name="stt_lang"></select></label>
+        <label class="chk"><input type="checkbox" name="cleanup"> <span data-i18n>自動整理逐字稿（錯字、標點）</span></label>
       </section>
-      <section class="set-sec"><h3>講者</h3>
-        <label class="chk"><input type="checkbox" name="auto_label"> 依聲紋自動標記講者</label>
-        <label class="fld"><span class="lbl">我是誰</span><select name="me"></select></label>
-        <div class="fld"><span class="lbl">講者（改名、刪除立即生效）</span><ul class="plist" id="personList"></ul></div>
+      <section class="set-sec"><h3 data-i18n>講者</h3>
+        <label class="chk"><input type="checkbox" name="auto_label"> <span data-i18n>依聲紋自動標記講者</span></label>
+        <label class="fld"><span class="lbl" data-i18n>我是誰</span><select name="me"></select></label>
+        <div class="fld"><span class="lbl" data-i18n>講者（改名、刪除立即生效）</span><ul class="plist" id="personList"></ul></div>
       </section>
-      <section class="set-sec"><h3>詞彙</h3>
-        <div class="fld" id="sugBox" hidden><span class="lbl">建議加入（加入、忽略立即生效）</span><ul class="plist" id="sugList"></ul><p class="hint" id="sugMeta"></p></div>
-        <div class="chips" id="vocabBox"><span class="chiplist" id="vocabChips"></span><input id="vocabIn" type="text" autocomplete="off" placeholder="專有名詞，Enter 或逗號加入" aria-label="新增詞彙"></div>
+      <section class="set-sec"><h3 data-i18n>詞彙</h3>
+        <div class="fld" id="sugBox" hidden><span class="lbl" data-i18n>建議加入（加入、忽略立即生效）</span><ul class="plist" id="sugList"></ul><p class="hint" id="sugMeta"></p></div>
+        <div class="chips" id="vocabBox"><span class="chiplist" id="vocabChips"></span><input id="vocabIn" type="text" autocomplete="off" placeholder="專有名詞，Enter 或逗號加入" aria-label="新增詞彙" data-i18n-placeholder data-i18n-aria-label></div>
         <p class="hint" id="vocabHint"></p>
       </section>
-      <section class="set-sec" id="pushSec" hidden><h3>通知</h3>
-        <div class="chk"><label class="chk" id="pushRow"><input type="checkbox" id="pushOn"> 完成時通知我</label>
-          <button type="button" class="ghost" id="pushTest" style="margin-left:auto;font-size:.85rem;padding:.25em .7em" hidden>送測試通知</button></div>
-        <p class="hint" id="pushHint" hidden>iPhone 需先「加入主畫面」再從主畫面開啟才能收到通知</p>
+      <section class="set-sec" id="pushSec" hidden><h3 data-i18n>通知</h3>
+        <div class="chk"><label class="chk" id="pushRow"><input type="checkbox" id="pushOn"> <span data-i18n>完成時通知我</span></label>
+          <button type="button" class="ghost" id="pushTest" style="margin-left:auto;font-size:.85rem;padding:.25em .7em" hidden data-i18n>送測試通知</button></div>
+        <p class="hint" id="pushHint" hidden data-i18n>iPhone 需先「加入主畫面」再從主畫面開啟才能收到通知</p>
       </section>
-      <p class="hint">設定只影響之後的新工作；既有錄音可重新轉錄或重新產生摘要。</p>
+      <p class="hint" data-i18n>設定只影響之後的新工作；既有錄音可重新轉錄或重新產生摘要。</p>
     </div>
     <div class="set-foot">
       <p class="set-err" id="setErr" role="alert" hidden></p>
-      <div class="set-bar" id="setBar" hidden><span>有未儲存的變更</span><button type="button" id="setDiscard">放棄</button><button type="button" id="setKeep">繼續編輯</button></div>
-      <div class="row"><button type="button" id="setClose">關閉</button><button type="submit" class="primary">儲存</button></div>
+      <div class="set-bar" id="setBar" hidden><span data-i18n>有未儲存的變更</span><button type="button" id="setDiscard" data-i18n>放棄</button><button type="button" id="setKeep" data-i18n>繼續編輯</button></div>
+      <div class="row"><button type="button" id="setClose" data-i18n>關閉</button><button type="submit" class="primary" data-i18n>儲存</button></div>
     </div>
   </form>
 </dialog>
 
-<div class="drop" id="drop" aria-hidden="true">放開以匯入音訊或影片</div>
+<div class="drop" id="drop" aria-hidden="true" data-i18n>放開以匯入音訊或影片</div>
 <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
 
 <script>
 'use strict';
 const $ = s => document.querySelector(s);
-const STATUS = {uploading:'上傳中',queued:'排隊中',converting:'轉檔中',transcribing:'轉錄中',cleaning:'整理中',done:'完成',error:'錯誤',running:'產生中'};
+// UI strings: tr(zh source, {vars}) from i18n.js; the language is fixed per page load (setLang reloads)
+const tr=(s,v)=>window.yanroku.t(s,v), LOCALE=window.yanroku.locale;
+window.yanroku.applyI18n();
+const STATUS = {uploading:tr('上傳中'),queued:tr('排隊中'),converting:tr('轉檔中'),transcribing:tr('轉錄中'),cleaning:tr('整理中'),done:tr('完成'),error:tr('錯誤'),running:tr('產生中')};
 const BUSY = s => !['done','error'].includes(s);
 const S = {view:'recent',folder:null,q:'',list:[],folders:[],id:null,tab:'transcript',d:null,showRaw:false,
   meta:null,active:-1,starts:[],segEls:[],player:null,playerFor:null,userScrollAt:0,spkSeg:null};
@@ -658,7 +670,7 @@ async function api(path, opt={}){
   const init={method:opt.method||'GET',redirect:'manual',headers:await authHeaders()};
   if(opt.body!==undefined){init.headers['Content-Type']='application/json';init.body=JSON.stringify(opt.body)}
   let r;
-  try{r=await fetch(path,init)}catch{throw new Error('網路錯誤，無法連線到伺服器')}
+  try{r=await fetch(path,init)}catch{throw new Error(tr('網路錯誤，無法連線到伺服器'))}
   // Access redirects to its login page once the session cookie expires
   if(r.type==='opaqueredirect')throw httpErr(401,'');
   const txt=await r.text();
@@ -669,15 +681,16 @@ function httpErr(status,txt){
   let d=null;try{d=JSON.parse(txt)}catch{}
   let msg=d&&(d.detail??d.error);
   if(msg!=null&&typeof msg!=='string')msg=JSON.stringify(msg);
-  if(status===401&&unauthorized){unauthorized();msg='登入已過期'} // an extension's sign-in (window.yanroku.onUnauthorized)
-  else if(status===401||status===403){showAlert('登入已過期或沒有權限（'+status+'），請重新整理頁面以重新登入。');msg='登入已過期'}
-  else if(status===503)showAlert('服務暫時無法使用（503）'+(msg?'：'+msg:'')+'，請稍後重新整理。');
+  else if(msg)msg=tr(msg); // known server messages are in the dictionaries; others pass through
+  if(status===401&&unauthorized){unauthorized();msg=tr('登入已過期')} // an extension's sign-in (window.yanroku.onUnauthorized)
+  else if(status===401||status===403){showAlert(tr('登入已過期或沒有權限（{status}），請重新整理頁面以重新登入。',{status}));msg=tr('登入已過期')}
+  else if(status===503)showAlert(msg?tr('服務暫時無法使用（503）：{msg}，請稍後重新整理。',{msg}):tr('服務暫時無法使用（503），請稍後重新整理。'));
   const e=new Error(msg||(txt&&!txt.startsWith('<')?txt.slice(0,200):`HTTP ${status}`));e.status=status;return e;
 }
 function showAlert(msg){$('#alertMsg').textContent=msg;$('#alert').hidden=false}
 
 function toast(msg, ms=2600){const t=h('div',{class:'toast',text:msg});$('#toasts').append(t);if(ms)setTimeout(()=>t.remove(),ms);return t}
-const fail = e => {console.error(e);toast('錯誤：'+(e.message||e),5000)};
+const fail = e => {console.error(e);toast(tr('錯誤：{msg}',{msg:e.message||e}),5000)};
 
 function fmtDur(sec){
   if(sec==null||!isFinite(sec))return '--:--';
@@ -688,41 +701,43 @@ function fmtDur(sec){
 const parseDate=s=>new Date(s.includes('T')?s:s.replace(' ','T')+'Z');
 function fmtDate(s){
   if(!s)return '';const d=parseDate(s);
-  return isNaN(d)?s:d.toLocaleString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false});
+  return isNaN(d)?s:d.toLocaleString(LOCALE,{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false});
 }
 // list rows: drop the year when it is this year
 function fmtShort(s){
   if(!s)return '';const d=parseDate(s);if(isNaN(d))return s;
   const o={month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false};
   if(d.getFullYear()!==new Date().getFullYear())o.year='numeric';
-  return d.toLocaleString('zh-TW',o);
+  return d.toLocaleString(LOCALE,o);
 }
+const UNKNOWN_SPK=tr('未知講者');
 const spkColor = id => id==null?'var(--mute)':`var(--s${(id%8)+1})`;
 
 /* ---------- runners ---------- */
 const noRunner=()=>S.runners&&!S.runners.runners.some(r=>r.online);
-const NO_RUNNER='目前沒有 runner 在線，會等 runner 上線後自動處理。';
-function ago(s){return s<60?'剛剛':s<3600?Math.floor(s/60)+' 分鐘前':s<86400?Math.floor(s/3600)+' 小時前':Math.floor(s/86400)+' 天前'}
+const NO_RUNNER=tr('目前沒有 runner 在線，會等 runner 上線後自動處理。');
+const RTF=new Intl.RelativeTimeFormat(LOCALE,{numeric:'auto'});
+function ago(s){return s<60?tr('剛剛'):s<3600?RTF.format(-Math.floor(s/60),'minute'):s<86400?RTF.format(-Math.floor(s/3600),'hour'):RTF.format(-Math.floor(s/86400),'day')}
 // newest build among runners seen in the last week; older ones are flagged
 const latestBuild=rs=>rs.filter(r=>r.ago_s<7*86400&&r.version_time).map(r=>r.version_time).sort().at(-1);
 function versionBadge(r,latest){
-  if(!r.version)return h('span',{class:'badge busy',text:'版本未知（舊版）',title:'這台 runner 還沒更新到會回報版本的版本'});
+  if(!r.version)return h('span',{class:'badge busy',text:tr('版本未知（舊版）'),title:tr('這台 runner 還沒更新到會回報版本的版本')});
   const t=r.version_time?fmtDate(r.version_time):'';
   const old=latest&&r.version_time&&r.version_time<latest;
-  return h('span',{class:'badge'+(old?' busy':''),title:`commit ${r.version}${t?' · '+t:''}`,text:(old?'需要更新 · ':'')+r.version+(t?' · '+t.slice(5):'')});
+  return h('span',{class:'badge'+(old?' busy':''),title:`commit ${r.version}${t?' · '+t:''}`,text:(old?tr('需要更新')+' · ':'')+r.version+(t?' · '+fmtShort(r.version_time):'')});
 }
 function runnerRow(r,latest){
   const j=r.job;
-  const what=!r.online?'離線 · 最後連線 '+ago(r.ago_s)
-    :!j?'閒置，等待工作'
-    :j.kind==='recording'?`處理中：#${j.id}「${j.title}」· ${STATUS[j.status]||j.status}`
-    :j.kind==='ask'?`回答提問：「${j.title}」`
-    :j.kind==='vocab'?'分析詞彙'
-    :`產生摘要：#${j.recording_id}「${j.title}」`;
+  const what=!r.online?tr('離線 · 最後連線 {ago}',{ago:ago(r.ago_s)})
+    :!j?tr('閒置，等待工作')
+    :j.kind==='recording'?tr('處理中：#{id}「{title}」· {status}',{id:j.id,title:j.title,status:STATUS[j.status]||j.status})
+    :j.kind==='ask'?tr('回答提問：「{title}」',{title:j.title})
+    :j.kind==='vocab'?tr('分析詞彙')
+    :tr('產生摘要：#{id}「{title}」',{id:j.recording_id,title:j.title});
   return h('li',{class:'rrow'},h('span',{class:'rdot'+(r.online?' on':''),'aria-hidden':'true'}),
-    h('div',{},h('b',{text:r.name}),r.stt?h('span',{class:'badge',text:r.stt==='groq'?'Groq':'本機 Whisper'}):null,versionBadge(r,latest),h('div',{class:'muted',text:what})),
+    h('div',{},h('b',{text:r.name}),r.stt?h('span',{class:'badge',text:r.stt==='groq'?'Groq':tr('本機 Whisper')}):null,versionBadge(r,latest),h('div',{class:'muted',text:what})),
     // only an offline runner can be removed; it comes back by itself if it connects again
-    r.online?null:h('button',{type:'button',class:'ghost rdel','aria-label':`移除 ${r.name}`,title:'從清單移除（重新連線時會自動出現）',onclick:async()=>{
+    r.online?null:h('button',{type:'button',class:'ghost rdel','aria-label':tr('移除 {name}',{name:r.name}),title:tr('從清單移除（重新連線時會自動出現）'),onclick:async()=>{
       try{await api(`/api/runners/${encodeURIComponent(r.name)}`,{method:'DELETE'});S.runners.runners=S.runners.runners.filter(x=>x.name!==r.name);renderRunners()}catch(e){fail(e)}}},icon('x')));
 }
 function renderRunners(){
@@ -730,13 +745,13 @@ function renderRunners(){
   const on=d.runners.filter(r=>r.online).length,q=d.queued.recordings+d.queued.summaries+(d.queued.asks||0);
   for(const b of document.querySelectorAll('[data-runners]')){
     b.replaceChildren(...[h('span',{class:'rdot'+(on?' on':''),'aria-hidden':'true'}),
-      h('span',{class:'rtxt',text:on?`${on} 台 runner 在線`:'沒有 runner 在線'}),
-      q?h('span',{class:'badge busy',text:`排隊 ${q}`}):null].filter(Boolean));
+      h('span',{class:'rtxt',text:on?tr('{n} 台 runner 在線',{n:on}):tr('沒有 runner 在線')}),
+      q?h('span',{class:'badge busy',text:tr('排隊 {n}',{n:q})}):null].filter(Boolean));
     b.classList.toggle('warn',!on&&q>0);
-    b.title=on?`${on} 台 runner 在線`:'沒有 runner 在線';
+    b.title=on?tr('{n} 台 runner 在線',{n:on}):tr('沒有 runner 在線');
   }
-  $('#runnersQueue').textContent=`排隊中：${d.queued.recordings} 份錄音、${d.queued.summaries} 份摘要、${d.queued.asks||0} 個提問${d.queued.vocab?'、詞彙分析':''}`;
-  $('#runnersList').replaceChildren(...(d.runners.length?d.runners.map(r=>runnerRow(r,latestBuild(d.runners))):[h('li',{class:'muted',text:'還沒有 runner 連線過。'})]));
+  $('#runnersQueue').textContent=tr('排隊中：{r} 份錄音、{s} 份摘要、{a} 個提問',{r:d.queued.recordings,s:d.queued.summaries,a:d.queued.asks||0})+(d.queued.vocab?tr('、詞彙分析'):'');
+  $('#runnersList').replaceChildren(...(d.runners.length?d.runners.map(r=>runnerRow(r,latestBuild(d.runners))):[h('li',{class:'muted',text:tr('還沒有 runner 連線過。')})]));
 }
 async function loadRunners(){
   try{S.runners=await api('/api/runners');renderRunners()}catch(e){console.error(e)}
@@ -746,7 +761,7 @@ document.addEventListener('click',e=>{if(e.target.closest('[data-runners]'))$('#
 
 /* ---------- folders ---------- */
 const fById=id=>S.folders.find(f=>f.id===id);
-const kids=pid=>S.folders.filter(f=>f.parent_id===pid).sort((a,b)=>a.name.localeCompare(b.name,'zh-Hant'));
+const kids=pid=>S.folders.filter(f=>f.parent_id===pid).sort((a,b)=>a.name.localeCompare(b.name,LOCALE));
 function descendants(id){const out=[];const walk=p=>{for(const c of kids(p)){out.push(c);walk(c.id)}};walk(id);return out}
 function pathOf(id){const p=[];for(let f=fById(id);f&&p.length<64;f=fById(f.parent_id))p.unshift(f);return p}
 async function loadFolders(){
@@ -771,8 +786,8 @@ function applyView(view,folder=null){
 }
 function updateTitle(){
   const r=S.id&&S.d?.recording;
-  const t=r?`${r.title}・${S.tab==='summary'?'摘要':'逐字稿'}`
-    :S.view==='folder'?pathOf(S.folder).map(f=>f.name).join(' / ')||'資料夾':VIEWS[S.view];
+  const t=r?`${r.title} · ${S.tab==='summary'?tr('摘要'):tr('逐字稿')}`
+    :S.view==='folder'?pathOf(S.folder).map(f=>f.name).join(' / ')||tr('資料夾'):VIEWS[S.view];
   document.title=`${t} — Yanroku`;
 }
 function dropTarget(el,on){
@@ -792,29 +807,29 @@ function renderNav(){
     if(drop)dropTarget(b,drop);
     return b;
   };
-  const rows=[nv('recent','最近','clock'),nv('all','全部','list'),
-    h('a',{href:'#/ask',class:'nv','aria-current':String(S.view==='ask'),onclick:e=>{e.preventDefault();if(location.hash==='#/ask')route();else location.hash='#/ask'}},icon('ask'),h('span',{class:'nm',text:'問問看'})),
-    nv('none','未分類','inbox',{rec:id=>moveRec(id,null)})];
-  const head=h('div',{class:'tree-h'},h('span',{text:'資料夾'}),
-    h('button',{type:'button','aria-label':'新增資料夾',title:'新增資料夾',onclick:()=>newFolder(null).catch(fail)},icon('plus')));
+  const rows=[nv('recent',VIEWS.recent,'clock'),nv('all',VIEWS.all,'list'),
+    h('a',{href:'#/ask',class:'nv','aria-current':String(S.view==='ask'),onclick:e=>{e.preventDefault();if(location.hash==='#/ask')route();else location.hash='#/ask'}},icon('ask'),h('span',{class:'nm',text:VIEWS.ask})),
+    nv('none',VIEWS.none,'inbox',{rec:id=>moveRec(id,null)})];
+  const head=h('div',{class:'tree-h'},h('span',{text:tr('資料夾')}),
+    h('button',{type:'button','aria-label':tr('新增資料夾'),title:tr('新增資料夾'),onclick:()=>newFolder(null).catch(fail)},icon('plus')));
   dropTarget(head,{folder:id=>moveFolder(id,null)});
   rows.push(head);
   const walk=(pid,depth)=>{for(const f of kids(pid)){rows.push(folderRow(f,depth));if(expanded.has(f.id))walk(f.id,depth+1)}};
   walk(null,0);
-  if(!S.folders.length)rows.push(h('div',{class:'muted',style:'font-size:.8rem;padding:2px 10px 6px',text:'尚無資料夾'}));
-  rows.push(h('div',{style:'height:10px'}),nv('trash','垃圾桶','trash'),
-    h('button',{type:'button',class:'nv',onclick:()=>openSettings().catch(fail)},icon('gear'),h('span',{class:'nm',text:'設定'})));
+  if(!S.folders.length)rows.push(h('div',{class:'muted',style:'font-size:.8rem;padding:2px 10px 6px',text:tr('尚無資料夾')}));
+  rows.push(h('div',{style:'height:10px'}),nv('trash',VIEWS.trash,'trash'),
+    h('button',{type:'button',class:'nv',onclick:()=>openSettings().catch(fail)},icon('gear'),h('span',{class:'nm',text:tr('設定')})));
   $('#tree').replaceChildren(...rows);
   $('#tree').querySelector('[aria-current=true]')?.scrollIntoView({block:'nearest'});
 }
 function folderRow(f,depth){
   const hasKids=S.folders.some(c=>c.parent_id===f.id), open=expanded.has(f.id);
-  const tog=hasKids?h('button',{type:'button',class:'tog','aria-expanded':String(open),'aria-label':(open?'收合 ':'展開 ')+f.name,
+  const tog=hasKids?h('button',{type:'button',class:'tog','aria-expanded':String(open),'aria-label':tr(open?'收合 {name}':'展開 {name}',{name:f.name}),
     onclick:()=>{open?expanded.delete(f.id):expanded.add(f.id);saveExpanded();renderNav()}},icon(open?'down':'right')):h('span',{class:'tog'});
   const row=h('div',{class:'frow',style:`--d:${depth}`,draggable:DND?'true':null},tog,
     h('a',{href:'#/'+vpath('folder',f.id),class:'nv','aria-current':String(S.view==='folder'&&S.folder===f.id),onclick:e=>{e.preventDefault();setView('folder',f.id)}},
       icon('folder'),h('span',{class:'nm',text:f.name}),f.count?h('span',{class:'cnt',text:String(f.count)}):null),
-    h('button',{type:'button',class:'more','aria-label':`「${f.name}」的動作`,'aria-haspopup':'menu',onclick:e=>{e.stopPropagation();folderMenu(f,e.currentTarget)}},icon('more')));
+    h('button',{type:'button',class:'more','aria-label':tr('「{name}」的動作',{name:f.name}),'aria-haspopup':'menu',onclick:e=>{e.stopPropagation();folderMenu(f,e.currentTarget)}},icon('more')));
   row.addEventListener('contextmenu',e=>{e.preventDefault();folderMenu(f,e)});
   if(DND)row.addEventListener('dragstart',e=>{e.dataTransfer.setData(T_DIR,String(f.id));e.dataTransfer.effectAllowed='move'});
   dropTarget(row,{rec:id=>moveRec(id,f.id),folder:id=>moveFolder(id,f.id)});
@@ -832,45 +847,45 @@ function ctxMenu(items,at){
 function closeCtx(){$('#ctx').hidden=true}
 function folderMenu(f,at){
   ctxMenu([
-    ['新增子資料夾',()=>newFolder(f.id)],
-    ['重新命名',async()=>{
-      const name=prompt('資料夾名稱',f.name)?.trim();if(!name||name===f.name)return;
+    [tr('新增子資料夾'),()=>newFolder(f.id)],
+    [tr('重新命名'),async()=>{
+      const name=prompt(tr('資料夾名稱'),f.name)?.trim();if(!name||name===f.name)return;
       await api(`/api/folders/${f.id}`,{method:'PATCH',body:{name}});await loadFolders();
     }],
-    ['移動到…',async()=>{
-      const v=await pickFolder(`移動「${f.name}」到`,'最上層',new Set([f.id,...descendants(f.id).map(d=>d.id)]),f.parent_id);
+    [tr('移動到…'),async()=>{
+      const v=await pickFolder(tr('移動「{name}」到',{name:f.name}),tr('最上層'),new Set([f.id,...descendants(f.id).map(d=>d.id)]),f.parent_id);
       if(v&&v.id!==f.parent_id)await moveFolder(f.id,v.id);
     }],
-    ['刪除',async()=>{
+    [tr('刪除'),async()=>{
       const sub=descendants(f.id), n=[f,...sub].reduce((a,x)=>a+(x.count||0),0);
-      const msg=`刪除資料夾「${f.name}」`+(sub.length?`及其 ${sub.length} 個子資料夾`:'')+'？'+(n?`\n其中 ${n} 筆錄音會移到「未分類」（不會刪除）。`:'');
+      const msg=(sub.length?tr('刪除資料夾「{name}」及其 {n} 個子資料夾？',{name:f.name,n:sub.length}):tr('刪除資料夾「{name}」？',{name:f.name}))+(n?'\n'+tr('其中 {n} 筆錄音會移到「未分類」（不會刪除）。',{n}):'');
       if(!confirm(msg))return;
       await api(`/api/folders/${f.id}`,{method:'DELETE'});
       if(S.view==='folder'&&(S.folder===f.id||sub.some(d=>d.id===S.folder)))setView('none');
-      toast('已刪除資料夾');await loadFolders();loadList();
+      toast(tr('已刪除資料夾'));await loadFolders();loadList();
     },'danger']
   ],at);
 }
 async function newFolder(parent_id){
-  const name=prompt(parent_id?`在「${fById(parent_id)?.name}」中新增資料夾`:'新資料夾名稱')?.trim();if(!name)return;
+  const name=prompt(parent_id?tr('在「{name}」中新增資料夾',{name:fById(parent_id)?.name}):tr('新資料夾名稱'))?.trim();if(!name)return;
   const f=await api('/api/folders',{method:'POST',body:{name,parent_id}});
   if(parent_id){expanded.add(parent_id);saveExpanded()}
   await loadFolders();
   if(f?.id)setView('folder',f.id);
 }
 async function moveFolder(id,parent_id){
-  if(id===parent_id||descendants(id).some(d=>d.id===parent_id)){toast('不能移到自己或子資料夾內',4000);return}
+  if(id===parent_id||descendants(id).some(d=>d.id===parent_id)){toast(tr('不能移到自己或子資料夾內'),4000);return}
   if(fById(id)?.parent_id===parent_id)return;
   try{
     await api(`/api/folders/${id}`,{method:'PATCH',body:{parent_id}});
     if(parent_id){expanded.add(parent_id);saveExpanded()}
-    toast(`已移到「${parent_id?fById(parent_id)?.name:'最上層'}」`);await loadFolders();
+    toast(tr('已移到「{name}」',{name:parent_id?fById(parent_id)?.name:tr('最上層')}));await loadFolders();
   }catch(e){fail(e)}
 }
 async function moveRec(id,folder_id){
   try{
     await api(`/api/recordings/${id}`,{method:'PATCH',body:{folder_id}});
-    toast(`已移到「${folder_id?fById(folder_id)?.name:'未分類'}」`);
+    toast(tr('已移到「{name}」',{name:folder_id?fById(folder_id)?.name:tr('未分類')}));
     if(S.d?.recording.id===id)S.d.recording.folder_id=folder_id;
     loadFolders();loadList();
   }catch(e){fail(e)}
@@ -883,7 +898,7 @@ function pickFolder(title,rootLabel,exclude=new Set(),current){
     const walk=(pid,depth)=>{for(const f of kids(pid)){if(exclude.has(f.id))continue;
       rows.push(h('button',{type:'button',class:'pk',style:`--d:${depth}`,'aria-current':String(current===f.id),onclick:()=>pick({id:f.id})},icon('folder'),f.name));walk(f.id,depth+1)}};
     walk(null,0);
-    if(rows.length===1)rows.push(h('p',{class:'muted',style:'font-size:.85rem;padding:0 8px',text:'還沒有資料夾，可在左側「資料夾」旁按 + 新增。'}));
+    if(rows.length===1)rows.push(h('p',{class:'muted',style:'font-size:.85rem;padding:0 8px',text:tr('還沒有資料夾，可在左側「資料夾」旁按 + 新增。')}));
     $('#pickList').replaceChildren(...rows);
     d.onclose=()=>res(null);
     d.showModal();
@@ -896,12 +911,12 @@ addEventListener('resize',closeCtx);
 $('#tree').addEventListener('scroll',closeCtx,{passive:true});
 
 /* ---------- library ---------- */
-const VIEWS={recent:'最近',all:'全部',none:'未分類',trash:'垃圾桶',ask:'問問看'};
+const VIEWS={recent:tr('最近'),all:tr('全部'),none:tr('未分類'),trash:tr('垃圾桶'),ask:tr('問問看')};
 function renderCrumbs(){
   const c=$('#crumbs');
   if(S.view!=='folder'){c.replaceChildren(h('span',{class:'cur',text:VIEWS[S.view]}));return}
   const path=pathOf(S.folder);
-  c.replaceChildren(h('button',{type:'button',text:'全部',onclick:()=>setView('all')}),
+  c.replaceChildren(h('button',{type:'button',text:VIEWS.all,onclick:()=>setView('all')}),
     ...path.flatMap((f,i)=>['›',i===path.length-1?h('span',{class:'cur','aria-current':'page',text:f.name}):h('button',{type:'button',text:f.name,onclick:()=>setView('folder',f.id)})]));
 }
 async function loadList(){
@@ -922,7 +937,7 @@ function listKey(){
 }
 function renderList(){
   if(S.view==='ask')return renderAskList();
-  $('#lcount').textContent=S.list.length?`${S.list.length} 筆`:'';
+  $('#lcount').textContent=S.list.length?tr('{n} 筆',{n:S.list.length}):'';
   fillList($('#list'));
   const hm=$('#main .home');if(hm){fillList(hm.querySelector('ul'));hm.querySelector('.lcount').textContent=$('#lcount').textContent}
 }
@@ -931,28 +946,28 @@ function home(){
   if(!narrow.matches||S.view==='ask')return hero();
   const ul=h('ul',{class:'list'});fillList(ul);
   // same search as the library pane's #q (hidden on phones); kept in sync so either one shows the current query
-  const q=h('input',{type:'search',value:S.q||'',placeholder:'搜尋標題或逐字稿內容','aria-label':'搜尋',oninput:e=>{
+  const q=h('input',{type:'search',value:S.q||'',placeholder:tr('搜尋標題或逐字稿內容'),'aria-label':tr('搜尋'),oninput:e=>{
     $('#q').value=e.target.value;clearTimeout(qTimer);qTimer=setTimeout(()=>{S.q=e.target.value.trim();loadList()},250)}});
   return h('section',{class:'home'},h('div',{class:'search home-q'},icon('search'),q),
-    h('h2',{class:'home-t'},$('#crumbs').textContent||'全部',h('span',{class:'lcount',text:$('#lcount').textContent})),ul);
+    h('h2',{class:'home-t'},$('#crumbs').textContent||VIEWS.all,h('span',{class:'lcount',text:$('#lcount').textContent})),ul);
 }
 function fillList(ul){
   ul.replaceChildren();
-  if(S.listErr&&!S.list.length){ul.append(h('li',{class:'empty'},h('p',{text:'無法載入清單：'+S.listErr.message}),h('button',{type:'button',text:'重試',onclick:loadList})));return}
-  if(!S.list.length){ul.append(h('li',{class:'empty',text:S.view==='trash'?'垃圾桶是空的':S.q?'找不到符合的錄音':S.view==='folder'||S.view==='none'?'這裡沒有錄音':'還沒有錄音，點「錄音」「匯入」或把檔案拖進視窗'}));return}
+  if(S.listErr&&!S.list.length){ul.append(h('li',{class:'empty'},h('p',{text:tr('無法載入清單：{msg}',{msg:S.listErr.message})}),h('button',{type:'button',text:tr('重試'),onclick:loadList})));return}
+  if(!S.list.length){ul.append(h('li',{class:'empty',text:tr(S.view==='trash'?'垃圾桶是空的':S.q?'找不到符合的錄音':S.view==='folder'||S.view==='none'?'這裡沒有錄音':'還沒有錄音，點「錄音」「匯入」或把檔案拖進視窗')}));return}
   for(const r of S.list){
-    const badge=r.status==='done'?null:h('span',{class:'badge '+(r.status==='error'?'error':'busy'),text:(STATUS[r.status]||r.status)+(r.status==='queued'&&r.note?' · 等待額度':'')});
+    const badge=r.status==='done'?null:h('span',{class:'badge '+(r.status==='error'?'error':'busy'),text:(STATUS[r.status]||r.status)+(r.status==='queued'&&r.note?' · '+tr('等待額度'):'')});
     const b=h('a',{href:recHash(r.id),class:'item','aria-current':String(r.id===S.id),draggable:DND&&S.view!=='trash'?'true':'false'},
       h('span',{class:'t',text:r.title}),
       h('span',{class:'m'},
         h('span',{text:fmtShort(r.created_at)}),
         r.duration_s!=null?h('span',{class:'mono',text:fmtDur(r.duration_s)}):null,
         badge,
-        r.has_summary?h('span',{title:'已有摘要','aria-label':'已有摘要'},icon('doc')):null,
+        r.has_summary?h('span',{title:tr('已有摘要'),'aria-label':tr('已有摘要')},icon('doc')):null,
         // inside a folder view the folder is implied
         r.folder_id&&S.view!=='folder'?h('span',{class:'tag',title:pathOf(r.folder_id).map(f=>f.name).join(' / ')},icon('folder'),pathOf(r.folder_id).at(-1)?.name??''):null),
-      r.top_speakers?.length?h('span',{class:'who',title:'講話時間最多'},icon('user'),' ',
-        r.top_speakers.flatMap((p,i)=>[i?'・':'',h('b',{text:p.name}),` ${p.pct}%`])):null);
+      r.top_speakers?.length?h('span',{class:'who',title:tr('講話時間最多')},icon('user'),' ',
+        r.top_speakers.flatMap((p,i)=>[i?' · ':'',h('b',{text:p.name}),` ${p.pct}%`])):null);
     if(DND)b.addEventListener('dragstart',e=>{e.dataTransfer.setData(T_REC,String(r.id));e.dataTransfer.effectAllowed='move'});
     ul.append(h('li',{},b));
   }
@@ -978,7 +993,7 @@ document.querySelector('.search').prepend(icon('search'));
 $('#fileInput').onchange=e=>{importFiles([...e.target.files]);e.target.value=''};
 async function importFiles(files){
   if(!files.length)return;
-  const language=await askLang(files.length>1?`匯入 ${files.length} 個檔案`:`匯入「${files[0].name}」`,'','開始上傳',SET.stt_lang);
+  const language=await askLang(files.length>1?tr('匯入 {n} 個檔案',{n:files.length}):tr('匯入「{name}」',{name:files[0].name}),'',tr('開始上傳'),SET.stt_lang);
   if(language)upload(files,{language});
 }
 let dragDepth=0;
@@ -997,17 +1012,17 @@ async function upload(files,{keep=false,language}={}){
   try{
     for(const [i,f] of files.entries()){
       const bar=h('progress',{max:'100',value:'0'});
-      const t=toast('',0);t.replaceChildren(h('div',{text:`上傳${files.length>1?` ${i+1}/${files.length}`:''}：${f.name}`}),bar);
+      const t=toast('',0);t.replaceChildren(h('div',{text:files.length>1?tr('上傳 {i}/{n}：{name}',{i:i+1,n:files.length,name:f.name}):tr('上傳：{name}',{name:f.name})}),bar);
       try{const id=await uploadOne(f,folder_id,language,p=>{bar.value=Math.round(p*100)});first??=id;ok++}
       catch(e){
-        const m=toast(`上傳失敗「${f.name}」：${e.message||e}`,keep?0:8000);
-        if(keep){const url=URL.createObjectURL(f);m.append(' ',h('a',{href:url,download:f.name,style:'color:inherit;font-weight:600',text:'下載錄音檔'}),' ',h('button',{type:'button',text:'關閉',onclick:()=>m.remove()}))}
+        const m=toast(tr('上傳失敗「{name}」：{msg}',{name:f.name,msg:e.message||e}),keep?0:8000);
+        if(keep){const url=URL.createObjectURL(f);m.append(' ',h('a',{href:url,download:f.name,style:'color:inherit;font-weight:600',text:tr('下載錄音檔')}),' ',h('button',{type:'button',text:tr('關閉'),onclick:()=>m.remove()}))}
       }
       finally{t.remove()}
       loadList();
     }
   }finally{uploading--}
-  if(ok)toast(`已上傳 ${ok} 個檔案，排隊處理中`);
+  if(ok)toast(tr('已上傳 {n} 個檔案，排隊處理中',{n:ok}));
   loadFolders();
   if(S.view==='trash')setView('all');else loadList();
   if(first)go(first);
@@ -1053,9 +1068,9 @@ async function putPart(url,blob,onprog,live){
     x.upload.onprogress=e=>onprog(e.loaded);
     x.onload=()=>{live.delete(x);
       if(x.status<200||x.status>=300)return rej(httpErr(x.status,x.responseText));
-      try{res(JSON.parse(x.responseText))}catch{rej(new Error('伺服器回應格式錯誤'))}};
-    x.onerror=()=>{live.delete(x);rej(new Error('網路錯誤'))};
-    x.onabort=()=>{live.delete(x);rej(new Error('已中止'))};
+      try{res(JSON.parse(x.responseText))}catch{rej(new Error(tr('伺服器回應格式錯誤')))}};
+    x.onerror=()=>{live.delete(x);rej(new Error(tr('網路錯誤')))};
+    x.onabort=()=>{live.delete(x);rej(new Error(tr('已中止')))};
     x.send(blob);
   });
 }
@@ -1064,13 +1079,13 @@ async function putPart(url,blob,onprog,live){
 document.querySelectorAll('[data-rec]').forEach(b=>b.onclick=startRecord);
 async function startRecord(){
   if(rec)return;
-  if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){toast('這個瀏覽器不支援錄音',5000);return}
+  if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){toast(tr('這個瀏覽器不支援錄音'),5000);return}
   const ios=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
   const mime=(ios?['audio/mp4','audio/webm;codecs=opus']:['audio/webm;codecs=opus','audio/mp4']).find(m=>MediaRecorder.isTypeSupported(m))||'';
   const ctx=new (window.AudioContext||window.webkitAudioContext)(); // created inside the click for iOS
   let stream;
   try{stream=await navigator.mediaDevices.getUserMedia({audio:true})}
-  catch(e){ctx.close();toast('無法使用麥克風：'+(e.message||e.name),6000);return}
+  catch(e){ctx.close();toast(tr('無法使用麥克風：{msg}',{msg:e.message||e.name}),6000);return}
   const mr=new MediaRecorder(stream,mime?{mimeType:mime}:undefined);
   const an=ctx.createAnalyser();an.fftSize=1024;ctx.createMediaStreamSource(stream).connect(an);ctx.resume?.();
   rec={mr,stream,ctx,an,chunks:[],t0:Date.now(),lock:null,cancel:false,buf:new Uint8Array(an.fftSize)};
@@ -1117,7 +1132,7 @@ function finishRecord(){
   upload([new File(r.chunks,name,{type})],{keep:true,language:$('#recLang').value});
 }
 $('#recStop').onclick=()=>stopRecord(false);
-$('#recCancel').onclick=()=>{if(confirm('捨棄這段錄音？'))stopRecord(true)};
+$('#recCancel').onclick=()=>{if(confirm(tr('捨棄這段錄音？')))stopRecord(true)};
 $('#recDlg').addEventListener('cancel',e=>e.preventDefault()); // Esc must not silently end a recording
 
 /* ---------- routing ---------- */
@@ -1130,7 +1145,7 @@ function route(){
   const m=location.hash.match(/^#\/(?:(recent|all|unfiled|trash)|folder\/(\d+))?\/?(?:rec\/(\d+)(\/summary)?)?/);
   const v=m?.[1]?{recent:'recent',all:'all',unfiled:'none',trash:'trash'}[m[1]]:m?.[2]?'folder':null, folder=m?.[2]?+m[2]:null;
   if(v==='folder'&&S.foldersLoaded&&!fById(folder)){
-    toast('找不到這個資料夾');history.replaceState(null,'',location.hash.replace(/^#\/folder\/\d+/,'#/all'));return route();
+    toast(tr('找不到這個資料夾'));history.replaceState(null,'',location.hash.replace(/^#\/folder\/\d+/,'#/all'));return route();
   }
   if(v&&(v!==S.view||folder!==S.folder))applyView(v,folder);
   else if(S.view==='ask')applyView('recent');
@@ -1145,22 +1160,23 @@ function route(){
   renderList();
   updateTitle();
   if(!id){$('#main').replaceChildren(home());return}
-  $('#main').replaceChildren(h('div',{class:'placeholder',text:'載入中…'}));
+  $('#main').replaceChildren(h('div',{class:'placeholder',text:tr('載入中…')}));
   loadDetail();
 }
 addEventListener('hashchange',()=>{if($('#app').hidden)return;route()}); // an extension showing its own page handles its own hash
 function hero(){
   return h('section',{class:'hero','aria-labelledby':'heroT'},
-    h('p',{class:'eyebrow',text:'YANROKU · 言錄'}),
-    h('h2',{id:'heroT'},'把聲音，',h('br'),'變成可以',h('em',{text:'翻閱'}),'的筆記'),
-    h('p',{text:'錄音或匯入音訊、影片，自動轉成逐字稿、分出每位講者，再整理成摘要。點任何一句話，就從那裡開始播放。'}),
+    h('p',{class:'eyebrow',text:tr('YANROKU · 言錄')}),
+    // the headline is split around <br> and <em>; each piece is its own key (a piece may translate to '')
+    h('h2',{id:'heroT'},tr('把聲音，'),h('br'),tr('變成可以'),h('em',{text:tr('翻閱')}),tr('的筆記')),
+    h('p',{text:tr('錄音或匯入音訊、影片，自動轉成逐字稿、分出每位講者，再整理成摘要。點任何一句話，就從那裡開始播放。')}),
     h('div',{class:'hero-acts'},
-      h('button',{type:'button',class:'rec',onclick:startRecord,text:'開始錄音'}),
-      h('button',{type:'button',onclick:()=>$('#fileInput').click(),text:'匯入檔案'})),
+      h('button',{type:'button',class:'rec',onclick:startRecord,text:tr('開始錄音')}),
+      h('button',{type:'button',onclick:()=>$('#fileInput').click(),text:tr('匯入檔案')})),
     h('ol',{class:'steps'},
-      h('li',{},h('b',{text:'01'}),h('span',{text:'匯入'}),' — 多個檔案一次拖進視窗'),
-      h('li',{},h('b',{text:'02'}),h('span',{text:'轉錄'}),' — 在 Mac 上分辨講者與時間'),
-      h('li',{},h('b',{text:'03'}),h('span',{text:'閱讀'}),' — 逐字稿同步播放、產生摘要')));
+      h('li',{},h('b',{text:'01'}),h('span',{text:tr('匯入')}),' — '+tr('多個檔案一次拖進視窗')),
+      h('li',{},h('b',{text:'02'}),h('span',{text:tr('轉錄')}),' — '+tr('在 Mac 上分辨講者與時間')),
+      h('li',{},h('b',{text:'03'}),h('span',{text:tr('閱讀')}),' — '+tr('逐字稿同步播放、產生摘要'))));
 }
 
 /* ---------- detail ---------- */
@@ -1169,8 +1185,8 @@ async function loadDetail(){
   const id=S.id;
   let d;
   try{d=await api(`/api/recordings/${id}`)}catch(e){if(id===S.id)$('#main').replaceChildren(h('div',{class:'placeholder'},h('div',{},
-    h('p',{class:'notice error',role:'alert',text:(e.status===404?'找不到這筆錄音。':'無法載入：'+e.message)}),
-    e.status===404?h('button',{type:'button',text:'回到清單',onclick:()=>go(null)}):h('button',{type:'button',class:'primary',text:'重試',onclick:loadDetail}))));return}
+    h('p',{class:'notice error',role:'alert',text:(e.status===404?tr('找不到這筆錄音。'):tr('無法載入：{msg}',{msg:e.message}))}),
+    e.status===404?h('button',{type:'button',text:tr('回到清單'),onclick:()=>go(null)}):h('button',{type:'button',class:'primary',text:tr('重試'),onclick:loadDetail}))));return}
   if(id!==S.id)return;
   const prev=S.d;S.d=d;
   const sig=x=>x&&[x.recording.status,x.recording.title,x.recording.deleted_at,x.segments.length,x.segments.map(s=>s.text_clean==null?0:1).join('')].join('|');
@@ -1184,9 +1200,9 @@ function renderDetail(){
   const {recording:r}=S.d;
   const main=$('#main');
   const titleH=h('h2',{class:'d-title'});
-  const showTitle=()=>titleH.replaceChildren(h('button',{type:'button',title:'點擊重新命名',text:r.title,onclick:editTitle}));
+  const showTitle=()=>titleH.replaceChildren(h('button',{type:'button',title:tr('點擊重新命名'),text:r.title,onclick:editTitle}));
   function editTitle(){
-    const inp=h('input',{type:'text',value:r.title,'aria-label':'標題'});let done=false;
+    const inp=h('input',{type:'text',value:r.title,'aria-label':tr('標題')});let done=false;
     const finish=async save=>{
       if(done)return;done=true;const v=inp.value.trim();
       if(save&&v&&v!==r.title){try{await api(`/api/recordings/${r.id}`,{method:'PATCH',body:{title:v}});r.title=v;updateTitle();loadList()}catch(e){fail(e)}}
@@ -1202,33 +1218,33 @@ function renderDetail(){
   // actions follow the recording's state: while it is processing only filing/trash make sense
   const ready=r.status==='done',tab=ready?S.tab:'transcript';
   const menuItems=r.deleted_at?[
-    act('還原',async()=>{await api(`/api/recordings/${r.id}/restore`,{method:'POST'});toast('已還原');S.d=null;loadList();loadFolders();loadDetail()}),
-    act('永久刪除',async()=>{if(!confirm(`永久刪除「${r.title}」？此動作無法復原。`))return;await api(`/api/recordings/${r.id}?purge=1`,{method:'DELETE'});toast('已永久刪除');go(null);loadList()},'danger')
+    act(tr('還原'),async()=>{await api(`/api/recordings/${r.id}/restore`,{method:'POST'});toast(tr('已還原'));S.d=null;loadList();loadFolders();loadDetail()}),
+    act(tr('永久刪除'),async()=>{if(!confirm(tr('永久刪除「{title}」？此動作無法復原。',{title:r.title})))return;await api(`/api/recordings/${r.id}?purge=1`,{method:'DELETE'});toast(tr('已永久刪除'));go(null);loadList()},'danger')
   ]:[
-    BUSY(r.status)?null:act('重新轉錄',async()=>{
-      const language=await askLang('重新轉錄','會覆蓋目前的逐字稿與講者名稱。','重新轉錄',r.language??SET.stt_lang);if(!language)return;
-      await api(`/api/recordings/${r.id}/retranscribe`,{method:'POST',body:{language}});toast('已排入重新轉錄');loadList();loadDetail()}),
-    act('移到資料夾…',async()=>{
-      const cur=r.folder_id??null,v=await pickFolder(`移動「${r.title}」到`,'未分類',new Set(),cur);
+    BUSY(r.status)?null:act(tr('重新轉錄'),async()=>{
+      const language=await askLang(tr('重新轉錄'),tr('會覆蓋目前的逐字稿與講者名稱。'),tr('重新轉錄'),r.language??SET.stt_lang);if(!language)return;
+      await api(`/api/recordings/${r.id}/retranscribe`,{method:'POST',body:{language}});toast(tr('已排入重新轉錄'));loadList();loadDetail()}),
+    act(tr('移到資料夾…'),async()=>{
+      const cur=r.folder_id??null,v=await pickFolder(tr('移動「{name}」到',{name:r.title}),tr('未分類'),new Set(),cur);
       if(v&&v.id!==cur)await moveRec(r.id,v.id);
     }),
-    act('移到垃圾桶',async()=>{await api(`/api/recordings/${r.id}`,{method:'DELETE'});toast('已移到垃圾桶');go(null);loadList();loadFolders()},'danger')
+    act(tr('移到垃圾桶'),async()=>{await api(`/api/recordings/${r.id}`,{method:'DELETE'});toast(tr('已移到垃圾桶'));go(null);loadList();loadFolders()},'danger')
   ];
-  const menu=h('details',{class:'menu'},h('summary',{'aria-label':'更多動作',title:'更多動作'},icon('more')),h('div',{},menuItems));
+  const menu=h('details',{class:'menu'},h('summary',{'aria-label':tr('更多動作'),title:tr('更多動作')},icon('more')),h('div',{},menuItems));
 
   const kids=[
     h('p',{class:'eyebrow',id:'deyebrow'}),
     h('div',{class:'d-head'},titleH,r.deleted_at||!ready?null:capButton(),menu),
     h('div',{class:'d-sub',id:'dsub'})
   ];
-  if(r.deleted_at)kids.push(h('div',{class:'notice',text:'這筆錄音在垃圾桶中。'}));
-  if(r.status==='error')kids.push(h('div',{class:'notice error',role:'alert',text:'處理失敗：'+(r.error||'未知錯誤')}));
-  else if(r.status==='queued'&&r.note)kids.push(h('div',{class:'notice busy',role:'status',text:`排隊中：${r.note}${r.not_before?'，預計 '+fmtDate(r.not_before)+' 後繼續':''}。`}));
-  else if(r.status==='queued'&&noRunner())kids.push(h('div',{class:'notice busy',role:'status',text:'排隊中。'+NO_RUNNER}));
-  else if(BUSY(r.status))kids.push(h('div',{class:'notice busy',role:'status',text:`處理中：${STATUS[r.status]||r.status}…（完成後會自動更新）`}));
+  if(r.deleted_at)kids.push(h('div',{class:'notice',text:tr('這筆錄音在垃圾桶中。')}));
+  if(r.status==='error')kids.push(h('div',{class:'notice error',role:'alert',text:tr('處理失敗：{msg}',{msg:r.error||tr('未知錯誤')})}));
+  else if(r.status==='queued'&&r.note)kids.push(h('div',{class:'notice busy',role:'status',text:r.not_before?tr('排隊中：{note}，預計 {time} 後繼續。',{note:tr(r.note),time:fmtDate(r.not_before)}):tr('排隊中：{note}。',{note:tr(r.note)})}));
+  else if(r.status==='queued'&&noRunner())kids.push(h('div',{class:'notice busy',role:'status',text:tr('排隊中。')+NO_RUNNER}));
+  else if(BUSY(r.status))kids.push(h('div',{class:'notice busy',role:'status',text:tr('處理中：{status}…（完成後會自動更新）',{status:STATUS[r.status]||r.status})}));
 
   const tabBtn=(id,label,n)=>h('button',{type:'button',role:'tab',id:'tab-'+id,'aria-selected':String(tab===id),'aria-controls':'pane-'+id,onclick:()=>go(r.id,id)},label,n?h('span',{class:'n',text:String(n)}):null);
-  kids.push(h('div',{class:'tabs',role:'tablist'},tabBtn('transcript','逐字稿',S.d.segments.length),ready?tabBtn('summary','摘要',S.d.summaries.length):null));
+  kids.push(h('div',{class:'tabs',role:'tablist'},tabBtn('transcript',tr('逐字稿'),S.d.segments.length),ready?tabBtn('summary',tr('摘要'),S.d.summaries.length):null));
   const pane=h('section',{id:'pane-'+tab,role:'tabpanel','aria-labelledby':'tab-'+tab});
   kids.push(pane);
   main.replaceChildren(h('div',{class:'detail'},kids));
@@ -1239,7 +1255,7 @@ function renderDetail(){
 
 function updateSub(){
   const r=S.d?.recording,el=document.getElementById('dsub');if(!r||!el)return;
-  $('#deyebrow').replaceChildren(icon('folder'),r.folder_id?pathOf(r.folder_id).map(f=>f.name).join(' / '):'未分類');
+  $('#deyebrow').replaceChildren(icon('folder'),r.folder_id?pathOf(r.folder_id).map(f=>f.name).join(' / '):tr('未分類'));
   const it=(ic,text,cls)=>text?h('span',{class:cls},icon(ic),text):null;
   el.replaceChildren(...[it('cal',fmtDate(r.created_at)),it('clock',r.duration_s!=null?fmtDur(r.duration_s):null,'mono'),it('file',r.filename)].filter(Boolean));
 }
@@ -1248,8 +1264,8 @@ function updateSub(){
 function getPlayer(r){
   if(S.player&&S.playerFor===r.id)return S.player;
   const audio=h('audio',{preload:'metadata',src:`/media/${r.id}`});
-  const playBtn=h('button',{type:'button',class:'play primary','aria-label':'播放'},icon('play'));
-  const seek=h('input',{type:'range',class:'seek',min:'0',max:'0',step:'0.1',value:'0','aria-label':'播放位置'});
+  const playBtn=h('button',{type:'button',class:'play primary','aria-label':tr('播放')},icon('play'));
+  const seek=h('input',{type:'range',class:'seek',min:'0',max:'0',step:'0.1',value:'0','aria-label':tr('播放位置')});
   const bands=h('div',{class:'bands'}),played=h('div',{class:'bands played'});
   const track=h('div',{class:'track'},bands,played,seek,h('div',{class:'head'}));
   const cur=h('b',{text:'00:00'}),tot=h('span',{text:' / '+fmtDur(r.duration_s)});
@@ -1262,11 +1278,11 @@ function getPlayer(r){
     const mk=()=>segs.map(s=>h('i',{style:`left:${s.start_ms/10/d}%;width:${Math.max(.15,(s.end_ms-s.start_ms)/10/d)}%;--c:${spkColor(s.speaker_id)}`}));
     bands.replaceChildren(...mk());played.replaceChildren(...mk());
   };
-  const speed=h('select',{'aria-label':'播放速度'},[0.75,1,1.25,1.5,1.75,2].map(v=>h('option',{value:String(v),selected:v===1,text:v+'×'})));
+  const speed=h('select',{'aria-label':tr('播放速度')},[0.75,1,1.25,1.5,1.75,2].map(v=>h('option',{value:String(v),selected:v===1,text:v+'×'})));
   const skip=n=>{audio.currentTime=Math.max(0,Math.min((audio.duration||1e9),audio.currentTime+n))};
   let dragging=false;
-  playBtn.onclick=()=>audio.paused?audio.play().catch(()=>toast('音檔暫時無法播放，請稍後再試',4000)):audio.pause();
-  const setPlayIcon=()=>{const p=!audio.paused;playBtn.replaceChildren(icon(p?'pause':'play'));playBtn.setAttribute('aria-label',p?'暫停':'播放')};
+  playBtn.onclick=()=>audio.paused?audio.play().catch(()=>toast(tr('音檔暫時無法播放，請稍後再試'),4000)):audio.pause();
+  const setPlayIcon=()=>{const p=!audio.paused;playBtn.replaceChildren(icon(p?'pause':'play'));playBtn.setAttribute('aria-label',p?tr('暫停'):tr('播放'))};
   audio.addEventListener('play',setPlayIcon);audio.addEventListener('pause',setPlayIcon);
   audio.addEventListener('loadedmetadata',()=>{seek.max=String(dur());upd();if(S.d?.recording.id===r.id)setTrack(S.d.segments)});
   const upd=()=>{if(!dragging)seek.value=String(audio.currentTime);cur.textContent=fmtDur(audio.currentTime);tot.textContent=' / '+fmtDur(dur());setP(dragging?+seek.value:audio.currentTime)};
@@ -1279,8 +1295,8 @@ function getPlayer(r){
   speed.onchange=()=>{audio.playbackRate=+speed.value};
   const el=h('div',{class:'player'},
     h('div',{class:'p-row'},playBtn,
-      h('button',{type:'button',class:'ghost','aria-label':'倒退 15 秒',title:'倒退 15 秒',onclick:()=>skip(-15)},icon('back'),' 15'),
-      h('button',{type:'button',class:'ghost','aria-label':'快轉 15 秒',title:'快轉 15 秒',onclick:()=>skip(15)},'15 ',icon('fwd')),
+      h('button',{type:'button',class:'ghost','aria-label':tr('倒退 15 秒'),title:tr('倒退 15 秒'),onclick:()=>skip(-15)},icon('back'),' 15'),
+      h('button',{type:'button',class:'ghost','aria-label':tr('快轉 15 秒'),title:tr('快轉 15 秒'),onclick:()=>skip(15)},'15 ',icon('fwd')),
       speed,time),
     track,audio);
   S.player={audio,el,skip,setTrack};S.playerFor=r.id;
@@ -1292,40 +1308,40 @@ function renderTranscript(pane){
   const {recording:r,segments,speakers}=S.d;
   const hasAudio=!!r.play_key; // play.m4a is uploaded mid-pipeline; until then no player at all
   if(hasAudio){const p=getPlayer(r);pane.append(p.el);p.setTrack(segments)}
-  if(!segments.length){pane.append(h('p',{class:'muted',text:BUSY(r.status)?'逐字稿產生中…':'沒有逐字稿內容。'}));S.segEls=[];S.starts=[];return}
+  if(!segments.length){pane.append(h('p',{class:'muted',text:BUSY(r.status)?tr('逐字稿產生中…'):tr('沒有逐字稿內容。')}));S.segEls=[];S.starts=[];return}
   const names=Object.fromEntries(speakers.map(s=>[s.id,s.display_name]));
   const autos=new Set(speakers.filter(s=>s.auto===1).map(s=>s.id));
   const mine=new Set(speakers.filter(s=>SET.me!=null&&s.person_id===SET.me).map(s=>s.id));
-  const meTag=id=>mine.has(id)?h('span',{class:'me',text:'（我）'}):null;
+  const meTag=id=>mine.has(id)?h('span',{class:'me',text:tr('（我）')}):null;
   // talk time per speaker, largest first
   const share=new Map();let total=0;
   for(const s of segments){const d=s.end_ms-s.start_ms;total+=d;share.set(s.speaker_id,(share.get(s.speaker_id)||0)+d)}
   // a voiceprint suggestion ("可能是 X？") sits next to its speaker; ✓ names the speaker X, ✕ keeps its default name (= dismiss)
   const sugs=new Map(speakers.filter(s=>s.suggest&&share.has(s.id)).map(s=>[s.id,s]));
-  const sugChip=sp=>h('span',{class:'sug',title:`聲紋相似度 ${sp.suggest.score}`},`可能是 ${sp.suggest.name}？`,
-    h('button',{type:'button',text:'✓','aria-label':`確認是 ${sp.suggest.name}`,onclick:e=>decideSuggest(sp,sp.suggest.name,e.currentTarget)}),
-    h('button',{type:'button',text:'✕','aria-label':'不是','title':'不是',onclick:e=>decideSuggest(sp,sp.display_name,e.currentTarget)}));
-  if(share.size>1||sugs.size)pane.append(h('div',{class:'legend','aria-label':'講者發言比例'},[...share].sort((a,b)=>b[1]-a[1]).map(([id,d])=>
-    h('span',{style:`--c:${spkColor(id)}`},h('i'),h('b',{text:id!=null?(names[id]||'未知講者'):'未知講者'},meTag(id)),h('span',{class:'mono',text:Math.round(d/total*100)+'%'}),sugs.has(id)?sugChip(sugs.get(id)):null))));
+  const sugChip=sp=>h('span',{class:'sug',title:tr('聲紋相似度 {score}',{score:sp.suggest.score})},tr('可能是 {name}？',{name:sp.suggest.name}),
+    h('button',{type:'button',text:'✓','aria-label':tr('確認是 {name}',{name:sp.suggest.name}),onclick:e=>decideSuggest(sp,sp.suggest.name,e.currentTarget)}),
+    h('button',{type:'button',text:'✕','aria-label':tr('不是'),'title':tr('不是'),onclick:e=>decideSuggest(sp,sp.display_name,e.currentTarget)}));
+  if(share.size>1||sugs.size)pane.append(h('div',{class:'legend','aria-label':tr('講者發言比例')},[...share].sort((a,b)=>b[1]-a[1]).map(([id,d])=>
+    h('span',{style:`--c:${spkColor(id)}`},h('i'),h('b',{text:id!=null?(names[id]||UNKNOWN_SPK):UNKNOWN_SPK},meTag(id)),h('span',{class:'mono',text:Math.round(d/total*100)+'%'}),sugs.has(id)?sugChip(sugs.get(id)):null))));
   const cleaned=segments.some(s=>s.text_clean!=null);
   pane.append(h('div',{class:'banner'},
-    cleaned?[h('span',{text:S.showRaw?'正在檢視原始逐字稿':'逐字稿已整理'}),'·',
-      h('button',{type:'button',text:S.showRaw?'檢視整理後':'檢視原文',onclick:()=>{S.showRaw=!S.showRaw;renderDetail()}})]:null,
+    cleaned?[h('span',{text:S.showRaw?tr('正在檢視原始逐字稿'):tr('逐字稿已整理')}),'·',
+      h('button',{type:'button',text:S.showRaw?tr('檢視整理後'):tr('檢視原文'),onclick:()=>{S.showRaw=!S.showRaw;renderDetail()}})]:null,
     h('span',{class:'grow'}),
-    hasAudio?h('span',{class:'keys'},h('kbd',{text:'Space'}),' 播放　',h('kbd',{text:'←'}),h('kbd',{text:'→'}),' 5 秒'):null));
+    hasAudio?h('span',{class:'keys'},h('kbd',{text:'Space'}),' '+tr('播放')+'\u3000',h('kbd',{text:'←'}),h('kbd',{text:'→'}),' '+tr('5 秒')):null));
   const list=h('div',{class:'segs'});
   S.segEls=[];S.starts=segments.map(s=>s.start_ms);S.active=-1;
   segments.forEach((s,i)=>{
     const text=S.showRaw?s.text_raw:(s.text_clean??s.text_raw);
-    const name=s.speaker_id!=null?(names[s.speaker_id]||'未知講者'):'未知講者';
+    const name=s.speaker_id!=null?(names[s.speaker_id]||UNKNOWN_SPK):UNKNOWN_SPK;
     const txt=h('div',{class:'seg-text',text});
     const el=h('div',{class:'seg','data-i':String(i),style:`--c:${spkColor(s.speaker_id)}`},
-      h('button',{type:'button',class:'ts','aria-label':`從 ${fmtDur(s.start_ms/1000)} 播放`,text:fmtDur(s.start_ms/1000),onclick:()=>seekTo(s)}),
-      h('button',{type:'button',class:'spk','aria-label':`講者：${name}${mine.has(s.speaker_id)?'（我）':''}${autos.has(s.speaker_id)?'（依聲紋自動辨識）':''}，點擊重新命名`,onclick:e=>openSpeaker(s,name,e.currentTarget)},name,meTag(s.speaker_id),autos.has(s.speaker_id)?h('span',{class:'badge',style:'margin-left:6px;letter-spacing:0',text:'自動',title:'依聲紋自動辨識，點擊可更正'}):null),
+      h('button',{type:'button',class:'ts','aria-label':tr('從 {time} 播放',{time:fmtDur(s.start_ms/1000)}),text:fmtDur(s.start_ms/1000),onclick:()=>seekTo(s)}),
+      h('button',{type:'button',class:'spk','aria-label':tr('講者：{name}，點擊重新命名',{name:name+(mine.has(s.speaker_id)?tr('（我）'):'')+(autos.has(s.speaker_id)?tr('（依聲紋自動辨識）'):'')}),onclick:e=>openSpeaker(s,name,e.currentTarget)},name,meTag(s.speaker_id),autos.has(s.speaker_id)?h('span',{class:'badge',style:'margin-left:6px;letter-spacing:0',text:tr('自動'),title:tr('依聲紋自動辨識，點擊可更正')}):null),
       txt,
       h('div',{class:'seg-tools'},
-        h('button',{type:'button','aria-label':'編輯文字',title:'編輯',onclick:()=>editSeg(s,txt)},icon('edit')),
-        h('button',{type:'button','aria-label':'複製文字',title:'複製',onclick:()=>copy(txt.textContent)},icon('copy'))));
+        h('button',{type:'button','aria-label':tr('編輯文字'),title:tr('編輯'),onclick:()=>editSeg(s,txt)},icon('edit')),
+        h('button',{type:'button','aria-label':tr('複製文字'),title:tr('複製'),onclick:()=>copy(txt.textContent)},icon('copy'))));
     txt.addEventListener('click',()=>{if(!txt.isContentEditable)seekTo(s)});
     S.segEls.push(el);list.append(el);
   });
@@ -1373,22 +1389,22 @@ function editSeg(s,txt){
     if(!save||!v||v===orig){txt.textContent=orig;return}
     try{
       await api(`/api/segments/${s.id}`,{method:'PATCH',body:{text:v}});
-      s.text_clean=v;txt.textContent=v;toast('已儲存');
+      s.text_clean=v;txt.textContent=v;toast(tr('已儲存'));
       if(S.showRaw){S.showRaw=false;renderDetail()}
     }catch(e){txt.textContent=orig;fail(e)}
   };
   txt.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();finish(true)}else if(e.key==='Escape'){e.preventDefault();finish(false)}};
   txt.onblur=()=>finish(true);
 }
-async function copy(text,msg='已複製'){try{await navigator.clipboard.writeText(text);toast(msg)}catch(e){fail(e)}}
+async function copy(text,msg=tr('已複製')){try{await navigator.clipboard.writeText(text);toast(msg)}catch(e){fail(e)}}
 
 /* ---------- copy as prompt ---------- */
 // Markdown an LLM reads well: intro, metadata, summaries, transcript with one line per speaker turn.
 const CAP_INTROS={
-  none:{label:'無',text:''},
-  qa:{label:'請根據內容回答問題',text:'以下是一份錄音的摘要與逐字稿，請根據內容回答我接下來的問題。'},
-  todo:{label:'請整理待辦與決議',text:'以下是一份會議錄音的逐字稿，請整理出所有待辦事項（負責人、內容、期限）與會議中做出的決定。'},
-  custom:{label:'自訂…',text:''},
+  none:{label:tr('無'),text:''},
+  qa:{label:tr('請根據內容回答問題'),text:tr('以下是一份錄音的摘要與逐字稿，請根據內容回答我接下來的問題。')},
+  todo:{label:tr('請整理待辦與決議'),text:tr('以下是一份會議錄音的逐字稿，請整理出所有待辦事項（負責人、內容、期限）與會議中做出的決定。')},
+  custom:{label:tr('自訂…'),text:''},
 };
 const CAP_DEF={summary:true,transcript:true,ts:true,raw:false,intro:'qa',custom:''};
 function capOpts(){let o={};try{o=JSON.parse(ls('cap')||'{}')}catch{}return {...CAP_DEF,...o}}
@@ -1399,31 +1415,31 @@ const joinTxt=(a,b)=>!a?b:/[A-Za-z0-9]$/.test(a)&&/^[A-Za-z0-9]/.test(b)?a+' '+b
 function buildPrompt(o,range){
   const {recording:r,speakers,segments,summaries}=S.d;
   const names=Object.fromEntries(speakers.map(s=>[s.id,s.display_name]));
-  const who=id=>id!=null?(names[id]||'未知講者'):'未知講者';
+  const who=id=>id!=null?(names[id]||UNKNOWN_SPK):UNKNOWN_SPK;
   const segs=range?segments.slice(range[0],range[1]+1):segments;
   const talk=new Map();for(const s of segs)talk.set(s.speaker_id,(talk.get(s.speaker_id)||0)+s.end_ms-s.start_ms);
   const out=[];
   const intro=o.intro==='custom'?o.custom.trim():CAP_INTROS[o.intro]?.text;
   if(intro)out.push(intro,'');
   out.push('# '+r.title);
-  out.push('- 日期：'+fmtDate(r.created_at));
-  if(r.duration_s!=null)out.push('- 長度：'+fmtDur(r.duration_s));
-  if(range&&segs.length)out.push(`- 片段：${fmtDur(segs[0].start_ms/1000)}–${fmtDur(segs.at(-1).end_ms/1000)}`);
-  if(talk.size)out.push('- 參與者：'+[...talk].sort((a,b)=>b[1]-a[1]).map(([id])=>who(id)).join('、'));
-  out.push('- 來源：'+location.origin+'/#/rec/'+r.id);
+  out.push('- '+tr('日期：')+fmtDate(r.created_at));
+  if(r.duration_s!=null)out.push('- '+tr('長度：')+fmtDur(r.duration_s));
+  if(range&&segs.length)out.push(`- ${tr('片段：')}${fmtDur(segs[0].start_ms/1000)}–${fmtDur(segs.at(-1).end_ms/1000)}`);
+  if(talk.size)out.push('- '+tr('參與者：')+[...talk].sort((a,b)=>b[1]-a[1]).map(([id])=>who(id)).join(tr('、')));
+  out.push('- '+tr('來源：')+location.origin+'/#/rec/'+r.id);
   if(o.summary&&!range){
-    const tname=id=>META?.templates.find(t=>t.id===id)?.name||id;
+    const tname=id=>tr(META?.templates.find(t=>t.id===id)?.name||id);
     for(const sm of summaries.filter(x=>x.status==='done'&&x.content_md))
-      out.push('',`## 摘要（${tname(sm.template_id)}）`,'',sm.content_md.trim().replace(/^(#{1,5}) /gm,'#$1 ')); // nest its headings under ours
+      out.push('','## '+tr('摘要（{name}）',{name:tname(sm.template_id)}),'',sm.content_md.trim().replace(/^(#{1,5}) /gm,'#$1 ')); // nest its headings under ours
   }
   if(o.transcript||range){
-    out.push('','## 逐字稿','');
+    out.push('','## '+tr('逐字稿'),'');
     let cur=null;
     for(const s of segs){
       const t=(o.raw?s.text_raw:(s.text_clean??s.text_raw)).trim();if(!t)continue;
       if(cur&&cur.id===s.speaker_id){cur.text=joinTxt(cur.text,t);continue}
       if(cur)out.push(cur.line());
-      cur={id:s.speaker_id,text:t,ms:s.start_ms,line(){return (o.ts?`[${fmtDur(this.ms/1000)}] `:'')+who(this.id)+'：'+this.text}};
+      cur={id:s.speaker_id,text:t,ms:s.start_ms,line(){return (o.ts?`[${fmtDur(this.ms/1000)}] `:'')+who(this.id)+tr('：')+this.text}};
     }
     if(cur)out.push(cur.line());
   }
@@ -1435,17 +1451,17 @@ function capEstimate(text){
   const tokens=Math.round(cjk+(text.length-cjk)/4);
   return {chars:text.length,tokens,warn:text.length>150000};
 }
-const capEstText=e=>`約 ${e.chars.toLocaleString()} 字 · ~${e.tokens.toLocaleString()} tokens`+(e.warn?'　內容很長，有些模型一次放不下，可只複製摘要或一段':'');
+const capEstText=e=>tr('約 {chars} 字 · ~{tokens} tokens',{chars:e.chars.toLocaleString(LOCALE),tokens:e.tokens.toLocaleString(LOCALE)})+(e.warn?'\u3000'+tr('內容很長，有些模型一次放不下，可只複製摘要或一段'):'');
 function capDownload(text){
   const a=h('a',{href:URL.createObjectURL(new Blob([text],{type:'text/markdown;charset=utf-8'})),download:(S.d.recording.title||'recording').replace(/[\\/:*?"<>|]/g,'_')+'.md'});
   document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
 const capMeta=async()=>{if(!META)META=await api('/api/templates').catch(()=>null)};
-async function capCopy(o,range){await capMeta();const t=buildPrompt(o,range);await copy(t,`已複製為 Prompt（${capEstText(capEstimate(t)).split('　')[0]}）`)}
+async function capCopy(o,range){await capMeta();const t=buildPrompt(o,range);await copy(t,tr('已複製為 Prompt（{est}）',{est:capEstText(capEstimate(t)).split('\u3000')[0]}))}
 async function capPreview(o,range){
   await capMeta();const t=buildPrompt(o,range),e=capEstimate(t);
   $('#capText').value=t;$('#capDlgEst').textContent=capEstText(e);$('#capDlgEst').classList.toggle('warn',e.warn);
-  $('#capDlgCopy').onclick=()=>copy(t,'已複製為 Prompt');$('#capDlgDl').onclick=()=>capDownload(t);
+  $('#capDlgCopy').onclick=()=>copy(t,tr('已複製為 Prompt'));$('#capDlgDl').onclick=()=>capDownload(t);
   $('#capDlg').showModal();
 }
 function capButton(){
@@ -1453,25 +1469,25 @@ function capButton(){
   const est=h('p',{class:'cap-est'});
   const refresh=()=>{saveCapOpts(o);const e=capEstimate(buildPrompt(o));est.textContent=capEstText(e);est.classList.toggle('warn',e.warn)};
   const chk=(k,label)=>h('label',{},h('input',{type:'checkbox',checked:o[k],onchange:e=>{o[k]=e.target.checked;refresh()}}),label);
-  const custom=h('textarea',{placeholder:'例如：請用三點整理重點，並列出我需要追蹤的事。','aria-label':'自訂指示語',oninput:e=>{o.custom=e.target.value;refresh()}});
+  const custom=h('textarea',{placeholder:tr('例如：請用三點整理重點，並列出我需要追蹤的事。'),'aria-label':tr('自訂指示語'),oninput:e=>{o.custom=e.target.value;refresh()}});
   custom.value=o.custom;custom.hidden=o.intro!=='custom';
-  const intro=h('select',{'aria-label':'開頭指示語',onchange:e=>{o.intro=e.target.value;custom.hidden=o.intro!=='custom';refresh()}},
+  const intro=h('select',{'aria-label':tr('開頭指示語'),onchange:e=>{o.intro=e.target.value;custom.hidden=o.intro!=='custom';refresh()}},
     Object.entries(CAP_INTROS).map(([k,v])=>h('option',{value:k,selected:o.intro===k,text:v.label})));
   const close=e=>e.target.closest('details').open=false;
   const opts=h('details',{class:'menu',ontoggle:e=>{if(e.target.open)refresh()}},
-    h('summary',{'aria-label':'複製選項',title:'複製選項'},icon('down')),
+    h('summary',{'aria-label':tr('複製選項'),title:tr('複製選項')},icon('down')),
     h('div',{class:'cap-opts'},
-      chk('summary','包含摘要'),chk('transcript','包含逐字稿'),chk('ts','時間戳'),chk('raw','使用原始辨識文字（未整理）'),
-      h('label',{style:'display:grid;gap:4px'},'開頭指示語',intro),custom,est,
+      chk('summary',tr('包含摘要')),chk('transcript',tr('包含逐字稿')),chk('ts',tr('時間戳')),chk('raw',tr('使用原始辨識文字（未整理）')),
+      h('label',{style:'display:grid;gap:4px'},tr('開頭指示語'),intro),custom,est,
       h('div',{class:'row'},
-        h('button',{type:'button',text:'預覽',onclick:e=>{close(e);capPreview(o)}}),
-        h('button',{type:'button',text:'下載 .md',onclick:e=>{close(e);capDownload(buildPrompt(o))}}))));
+        h('button',{type:'button',text:tr('預覽'),onclick:e=>{close(e);capPreview(o)}}),
+        h('button',{type:'button',text:tr('下載 .md'),onclick:e=>{close(e);capDownload(buildPrompt(o))}}))));
   return h('div',{class:'cap'},
-    h('button',{type:'button',title:'複製為可貼到 ChatGPT / Claude 的 Prompt',onclick:()=>capCopy(capOpts()).catch(fail)},icon('copy'),h('span',{class:'cap-label',text:'複製為 Prompt'})),
+    h('button',{type:'button',title:tr('複製為可貼到 ChatGPT / Claude 的 Prompt'),onclick:()=>capCopy(capOpts()).catch(fail)},icon('copy'),h('span',{class:'cap-label',text:tr('複製為 Prompt')})),
     opts);
 }
 // selecting text in the transcript offers "copy this part as prompt" (whole segments, with speakers and times)
-const capFloat=h('button',{type:'button',class:'cap-float primary',hidden:true},icon('copy'),'複製這段為 Prompt');
+const capFloat=h('button',{type:'button',class:'cap-float primary',hidden:true},icon('copy'),tr('複製這段為 Prompt'));
 document.body.append(capFloat);
 function selRange(){
   const sel=getSelection();if(!sel||sel.isCollapsed||!S.d)return null;
@@ -1494,15 +1510,15 @@ capFloat.onclick=()=>{const rg=selRange();if(rg)capCopy(capOpts(),rg).catch(fail
 const dlg=$('#spk');
 async function openSpeaker(seg,name,btn){
   S.spkSeg=seg;
-  $('#spkName').value=name==='未知講者'?'':name;
+  $('#spkName').value=name===UNKNOWN_SPK?'':name;
   const all=dlg.querySelector('input[value=all]');
   all.disabled=seg.speaker_id==null;
   dlg.querySelector(`input[value=${all.disabled?'segment':'all'}]`).checked=true;
-  const rec=$('#spkRecent');rec.replaceChildren(h('span',{class:'muted',style:'font-size:.85rem',text:'載入中…'}));
+  const rec=$('#spkRecent');rec.replaceChildren(h('span',{class:'muted',style:'font-size:.85rem',text:tr('載入中…')}));
   dlg.showModal();$('#spkName').select();
   try{
     const people=await api('/api/people');
-    rec.replaceChildren(...(people.length?people.map(n=>h('button',{type:'button',text:n,onclick:()=>{$('#spkName').value=n;$('#spkName').focus()}})):[h('span',{class:'muted',style:'font-size:.85rem',text:'尚無紀錄'})]));
+    rec.replaceChildren(...(people.length?people.map(n=>h('button',{type:'button',text:n,onclick:()=>{$('#spkName').value=n;$('#spkName').focus()}})):[h('span',{class:'muted',style:'font-size:.85rem',text:tr('尚無紀錄')})]));
   }catch{rec.replaceChildren()}
 }
 $('#spkCancel').onclick=()=>dlg.close();
@@ -1532,17 +1548,17 @@ async function renderSummaryTab(pane){
   const r=S.d.recording;
   if(!META){try{META=await api('/api/templates')}catch(e){fail(e);META={templates:[],languages:[]}}}
   if(S.d?.recording.id!==r.id||S.tab!=='summary')return;
-  const tpl=h('select',{id:'tplSel'},META.templates.map(t=>h('option',{value:t.id,text:t.name})));
+  const tpl=h('select',{id:'tplSel'},META.templates.map(t=>h('option',{value:t.id,text:tr(t.name)})));
   const lang=h('select',{id:'langSel'},META.languages.map(l=>h('option',{value:l.id,selected:l.id===sumLang(),text:l.name})));
-  const gen=h('button',{type:'submit',class:'primary',text:'產生摘要',disabled:r.status!=='done'||!META.templates.length});
+  const gen=h('button',{type:'submit',class:'primary',text:tr('產生摘要'),disabled:r.status!=='done'||!META.templates.length});
   const form=h('form',{class:'sum-form',onsubmit:async e=>{
     e.preventDefault();gen.disabled=true;
     try{await api(`/api/recordings/${r.id}/summaries`,{method:'POST',body:{template_id:tpl.value,language:lang.value}});await loadDetail();renderSummaries()}
     catch(err){fail(err)}finally{gen.disabled=r.status!=='done'}
   }},
-    h('label',{},'範本',tpl),h('label',{},'語言',lang),gen);
+    h('label',{},tr('範本'),tpl),h('label',{},tr('語言'),lang),gen);
   pane.append(form,h('div',{id:'sumList'}));
-  if(r.status!=='done')pane.insertBefore(h('p',{class:'muted',text:'逐字稿完成後才能產生摘要。'}),form.nextSibling);
+  if(r.status!=='done')pane.insertBefore(h('p',{class:'muted',text:tr('逐字稿完成後才能產生摘要。')}),form.nextSibling);
   renderSummaries();
 }
 function renderMd(md){
@@ -1556,7 +1572,7 @@ function renderMd(md){
 }
 function renderSummaries(){
   const box=document.getElementById('sumList');if(!box||!S.d)return;
-  const tname=id=>META?.templates.find(t=>t.id===id)?.name||id;
+  const tname=id=>tr(META?.templates.find(t=>t.id===id)?.name||id);
   const lname=id=>META?.languages.find(l=>l.id===id)?.name||id;
   const sums=[...S.d.summaries].sort((a,b)=>b.id-a.id);
   box.replaceChildren(...(sums.length?sums.map(s=>{
@@ -1566,19 +1582,19 @@ function renderSummaries(){
         h('strong',{text:tname(s.template_id)}),h('span',{text:lname(s.language)}),h('span',{text:fmtDate(s.created_at)}),
         s.status!=='done'?h('span',{class:'badge '+(s.status==='error'?'error':'busy'),text:STATUS[s.status]||s.status}):null,
         h('span',{class:'acts'},
-        s.content_md?h('button',{type:'button',class:'ghost','aria-label':'複製摘要',title:'複製',onclick:()=>copy(s.content_md)},icon('copy')):null,
-        h('button',{type:'button',class:'ghost','aria-label':'刪除摘要',title:'刪除',onclick:async()=>{
-          if(!confirm('刪除這份摘要？'))return;
+        s.content_md?h('button',{type:'button',class:'ghost','aria-label':tr('複製摘要'),title:tr('複製'),onclick:()=>copy(s.content_md)},icon('copy')):null,
+        h('button',{type:'button',class:'ghost','aria-label':tr('刪除摘要'),title:tr('刪除'),onclick:async()=>{
+          if(!confirm(tr('刪除這份摘要？')))return;
           try{await api(`/api/summaries/${s.id}`,{method:'DELETE'});S.d.summaries=S.d.summaries.filter(x=>x.id!==s.id);renderSummaries();loadList()}catch(e){fail(e)}}},icon('trash')))),
-      busy?h('p',{class:'muted',text:s.status==='queued'?(noRunner()?'排隊中。'+NO_RUNNER:'排隊中…'):'產生中，請稍候…'}):
-      s.status==='error'?h('p',{class:'notice error',text:s.error||'產生失敗'}):
+      busy?h('p',{class:'muted',text:s.status==='queued'?(noRunner()?tr('排隊中。')+NO_RUNNER:tr('排隊中…')):tr('產生中，請稍候…')}):
+      s.status==='error'?h('p',{class:'notice error',text:s.error||tr('產生失敗')}):
       s.content_md?renderMd(s.content_md):null);
-  }):[h('p',{class:'muted',text:'還沒有摘要。'})]));
+  }):[h('p',{class:'muted',text:tr('還沒有摘要。')})]));
 }
 
 /* ---------- ask (問問看): #/ask[/<id>] ---------- */
-const ASK_STATUS={queued:'排隊中',running:'思考中',done:'完成',error:'錯誤'};
-const ASK_EXAMPLES=['志明上個月答應了什麼？','客戶在哪幾場會議提過價格？'];
+const ASK_STATUS={queued:tr('排隊中'),running:tr('思考中'),done:tr('完成'),error:tr('錯誤')};
+const ASK_EXAMPLES=[tr('志明上個月答應了什麼？'),tr('客戶在哪幾場會議提過價格？')];
 let askTimer;
 function openAsk(aid){
   clearTimeout(detailTimer);clearTimeout(listTimer);
@@ -1601,7 +1617,7 @@ async function loadAsks(){
     if(aid===S.askId){const changed=!aid||JSON.stringify(a)!==JSON.stringify(S.ask);S.ask=a;if(changed)renderAskBody()}
   }catch(e){
     if(S.view!=='ask')return;
-    if(e.status===404&&aid&&aid===S.askId){S.askErr='找不到這個提問。';renderAskBody()}
+    if(e.status===404&&aid&&aid===S.askId){S.askErr=tr('找不到這個提問。');renderAskBody()}
     else{S.asksErr=e;if(!S.asks)renderAskList();console.error(e)}
   }
   if(S.view==='ask'&&(S.asks||[]).some(a=>BUSY(a.status)))askTimer=setTimeout(loadAsks,3000);
@@ -1612,23 +1628,23 @@ const askItem=a=>h('a',{href:'#/ask/'+a.id,class:'item','aria-current':String(a.
   h('span',{class:'m'},h('span',{text:fmtShort(a.created_at)}),askBadge(a)));
 function renderAskList(){
   const ul=$('#list');
-  $('#lcount').textContent=S.asks?.length?`${S.asks.length} 筆`:'';
-  if(!S.asks){ul.replaceChildren(h('li',{class:'empty',text:S.asksErr?'無法載入：'+S.asksErr.message:'載入中…'}));return}
-  ul.replaceChildren(...(S.asks.length?S.asks.map(a=>h('li',{},askItem(a))):[h('li',{class:'empty',text:'還沒有提問'})]));
+  $('#lcount').textContent=S.asks?.length?tr('{n} 筆',{n:S.asks.length}):'';
+  if(!S.asks){ul.replaceChildren(h('li',{class:'empty',text:S.asksErr?tr('無法載入：{msg}',{msg:S.asksErr.message}):tr('載入中…')}));return}
+  ul.replaceChildren(...(S.asks.length?S.asks.map(a=>h('li',{},askItem(a))):[h('li',{class:'empty',text:tr('還沒有提問')})]));
 }
 function renderAskMain(){
-  const ta=h('textarea',{id:'askIn',maxlength:'1000',rows:'3',placeholder:'問所有錄音，例如：'+ASK_EXAMPLES[0],'aria-label':'問題'});
-  const btn=h('button',{type:'submit',class:'primary',text:'送出'});
+  const ta=h('textarea',{id:'askIn',maxlength:'1000',rows:'3',placeholder:tr('問所有錄音，例如：{q}',{q:ASK_EXAMPLES[0]}),'aria-label':tr('問題')});
+  const btn=h('button',{type:'submit',class:'primary',text:tr('送出')});
   const form=h('form',{class:'ask-form',onsubmit:async e=>{
     e.preventDefault();const question=ta.value.trim();if(!question)return;
     btn.disabled=true;
     try{const r=await api('/api/asks',{method:'POST',body:{question}});ta.value='';location.hash='#/ask/'+r.id}
     catch(err){fail(err)}finally{btn.disabled=false}
-  }},ta,h('div',{class:'row'},h('span',{class:'hint',style:'margin-right:auto',text:'會先找出相關錄音，再讀逐字稿回答，每句都附出處。'}),btn));
+  }},ta,h('div',{class:'row'},h('span',{class:'hint',style:'margin-right:auto',text:tr('會先找出相關錄音，再讀逐字稿回答，每句都附出處。')}),btn));
   ta.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();form.requestSubmit()}});
   $('#main').replaceChildren(h('div',{class:'detail'},
-    h('p',{class:'eyebrow'},icon('ask'),'跨錄音提問'),
-    h('h2',{class:'d-title',style:'margin-bottom:16px',text:'問問看'}),
+    h('p',{class:'eyebrow'},icon('ask'),tr('跨錄音提問')),
+    h('h2',{class:'d-title',style:'margin-bottom:16px',text:VIEWS.ask}),
     form,h('div',{id:'askBody'})));
   if(!narrow.matches&&!S.askId)ta.focus();
   renderAskBody();
@@ -1637,35 +1653,35 @@ function renderAskBody(){
   const box=document.getElementById('askBody');if(!box)return;
   if(!S.askId){
     box.replaceChildren(
-      h('div',{class:'ask-ex'},'試試：',ASK_EXAMPLES.map(q=>h('button',{type:'button',text:q,onclick:()=>{const t=$('#askIn');t.value=q;t.focus()}}))),
+      h('div',{class:'ask-ex'},tr('試試：'),ASK_EXAMPLES.map(q=>h('button',{type:'button',text:q,onclick:()=>{const t=$('#askIn');t.value=q;t.focus()}}))),
       S.asks?.length?h('ul',{class:'list ask-recent',style:'padding:14px 0 0'},S.asks.map(a=>h('li',{},askItem(a)))):null);
     return;
   }
   const a=S.ask;
-  if(!a){box.replaceChildren(h('p',{class:'muted',text:S.askErr||'載入中…'}));return}
+  if(!a){box.replaceChildren(h('p',{class:'muted',text:S.askErr||tr('載入中…')}));return}
   const recs=new Map((a.recordings||[]).map(r=>[r.id,r]));
   const acts=h('span',{class:'acts'},
-    a.answer_md?h('button',{type:'button',class:'ghost','aria-label':'複製回答',title:'複製',onclick:()=>copy(a.answer_md)},icon('copy')):null,
-    h('button',{type:'button',class:'ghost','aria-label':'刪除提問',title:'刪除',onclick:async()=>{
-      if(!confirm('刪除這個提問？'))return;
+    a.answer_md?h('button',{type:'button',class:'ghost','aria-label':tr('複製回答'),title:tr('複製'),onclick:()=>copy(a.answer_md)},icon('copy')):null,
+    h('button',{type:'button',class:'ghost','aria-label':tr('刪除提問'),title:tr('刪除'),onclick:async()=>{
+      if(!confirm(tr('刪除這個提問？')))return;
       try{await api(`/api/asks/${a.id}`,{method:'DELETE'});S.asks=S.asks?.filter(x=>x.id!==a.id);location.hash='#/ask'}catch(e){fail(e)}}},icon('trash')));
-  const body=a.status==='queued'?h('p',{class:'notice busy',role:'status',text:noRunner()?'排隊中。'+NO_RUNNER:'排隊中…'})
-    :a.status==='running'?h('p',{class:'notice busy',role:'status',text:'思考中：正在找出相關錄音、閱讀逐字稿…'})
-    :a.status==='error'?h('div',{},h('p',{class:'notice error',role:'alert',text:'回答失敗：'+(a.error||'未知錯誤')}),
-      h('button',{type:'button',class:'primary',text:'重試',onclick:async e=>{e.currentTarget.disabled=true;try{await api(`/api/asks/${a.id}/retry`,{method:'POST'});loadAsks()}catch(err){fail(err)}}}))
+  const body=a.status==='queued'?h('p',{class:'notice busy',role:'status',text:noRunner()?tr('排隊中。')+NO_RUNNER:tr('排隊中…')})
+    :a.status==='running'?h('p',{class:'notice busy',role:'status',text:tr('思考中：正在找出相關錄音、閱讀逐字稿…')})
+    :a.status==='error'?h('div',{},h('p',{class:'notice error',role:'alert',text:tr('回答失敗：{msg}',{msg:a.error||tr('未知錯誤')})}),
+      h('button',{type:'button',class:'primary',text:tr('重試'),onclick:async e=>{e.currentTarget.disabled=true;try{await api(`/api/asks/${a.id}/retry`,{method:'POST'});loadAsks()}catch(err){fail(err)}}}))
     :renderAnswer(a.answer_md||'',recs);
   const used=a.status==='done'?a.sources.filter(id=>recs.has(id)):[];
   box.replaceChildren(h('article',{class:'card'},
     h('div',{class:'card-head'},h('p',{class:'ask-q',text:a.question}),acts),
     h('p',{class:'hint',style:'margin:0 0 10px',text:fmtDate(a.created_at)}),
     body,
-    used.length?h('div',{class:'ask-src'},'參考錄音',used.map(id=>citeChip(recs.get(id),id,null))):null));
+    used.length?h('div',{class:'ask-src'},tr('參考錄音'),used.map(id=>citeChip(recs.get(id),id,null))):null));
 }
 // opens the recording (transcript) and, with ms, seeks there once it renders
 // short = time only (same recording as the previous citation in this paragraph); the title stays in the tooltip
 function citeChip(rec,id,ms,short){
-  const label=rec?rec.title:`錄音 #${id}`,t=ms!=null?fmtDur(ms/1000):null;
-  return h('a',{href:`#/all/rec/${id}`,class:'cite',title:(rec?.deleted?'（在垃圾桶）':'')+label+(t?' '+t:''),onclick:()=>{S.seek=ms!=null?{id,ms}:null}},
+  const label=rec?rec.title:tr('錄音 #{id}',{id}),t=ms!=null?fmtDur(ms/1000):null;
+  return h('a',{href:`#/all/rec/${id}`,class:'cite',title:(rec?.deleted?tr('（在垃圾桶）'):'')+label+(t?' '+t:''),onclick:()=>{S.seek=ms!=null?{id,ms}:null}},
     short&&t?null:h('span',{class:'ct',text:label}),t?h('span',{class:'mono',text:t}):null);
 }
 // [[id@mm:ss]] / [[id@h:mm:ss]] (several may share one bracket) → chips; private-use chars carry them through markdown
@@ -1690,7 +1706,7 @@ function renderAnswer(md,recs){
 }
 
 /* ---------- settings ---------- */
-const LANGS=[['zh','中文'],['en','English'],['ja','日本語'],['auto','自動偵測']];
+const LANGS=[['zh',tr('中文')],['en',tr('English')],['ja',tr('日本語')],['auto',tr('自動偵測')]];
 const SET_DEF={about:'',content_focus:'',instructions:'',stt_lang:'zh',cleanup:true,auto_label:true,me:null,vocab:[]};
 let SET={...SET_DEF},PERSONS=[],personsErr=null,setVocab=[];
 // an old Worker has no /api/settings: keep the defaults
@@ -1734,7 +1750,7 @@ function fillSettings(){
 // v = the selection to keep; falls back to the saved one when that person is gone
 function renderMeSel(v){
   if(v==null||!PERSONS.some(p=>p.id===v))v=SET.me;
-  setF.me.replaceChildren(h('option',{value:'',text:'（未設定）'}),...PERSONS.map(p=>h('option',{value:String(p.id),selected:p.id===v,text:p.name})));
+  setF.me.replaceChildren(h('option',{value:'',text:tr('（未設定）')}),...PERSONS.map(p=>h('option',{value:String(p.id),selected:p.id===v,text:p.name})));
 }
 async function openSettings(){
   await Promise.all([loadSettings(),loadPersons()]);
@@ -1748,6 +1764,12 @@ $('#setClose').onclick=closeSettings;
 $('#setDiscard').onclick=()=>setDlg.close();
 $('#setKeep').onclick=()=>{$('#setBar').hidden=true};
 setF.stt_lang.onchange=vocabHint;
+// interface language (local to this browser, not a server setting): switching reloads the page
+$('#uiLang').value=window.yanroku.lang;
+$('#uiLang').onchange=e=>{
+  if(setDirty()&&!confirm(tr('有未儲存的變更，切換語言會放棄這些變更。要繼續嗎？'))){e.target.value=window.yanroku.lang;return}
+  window.yanroku.setLang(e.target.value);
+};
 // re-render the open recording: speaker names /（我）/ summary language may have changed
 function reloadDetail(){
   const id=S.id;if(!id)return;
@@ -1759,28 +1781,28 @@ $('#setForm').onsubmit=async e=>{
   const btn=e.submitter;if(btn)btn.disabled=true;setMsg('');
   try{
     SET={...SET_DEF,...await api('/api/settings',{method:'PUT',body:formSettings()})};
-    setDlg.close();toast('已儲存設定');reloadDetail();
-  }catch(err){setMsg('無法儲存：'+err.message)}finally{if(btn)btn.disabled=false}
+    setDlg.close();toast(tr('已儲存設定'));reloadDetail();
+  }catch(err){setMsg(tr('無法儲存：{msg}',{msg:err.message}))}finally{if(btn)btn.disabled=false}
 };
 
 function addVocab(text){
   for(const w of text.split(/[,，、\n]/).map(s=>s.trim()).filter(Boolean)){
-    if(w.length>50){setMsg(`「${w.slice(0,20)}…」超過 50 字`);continue}
+    if(w.length>50){setMsg(tr('「{w}…」超過 50 字',{w:w.slice(0,20)}));continue}
     if(setVocab.includes(w))continue;
-    if(setVocab.length>=200){setMsg('詞彙最多 200 個');break}
+    if(setVocab.length>=200){setMsg(tr('詞彙最多 200 個'));break}
     setVocab.push(w);
   }
   renderVocab();
 }
 function renderVocab(){
   $('#vocabChips').replaceChildren(...setVocab.map((w,i)=>h('span',{class:'chip'},w,
-    h('button',{type:'button',text:'×','aria-label':`移除 ${w}`,onclick:()=>{setVocab.splice(i,1);renderVocab();$('#vocabIn').focus()}}))));
+    h('button',{type:'button',text:'×','aria-label':tr('移除 {name}',{name:w}),onclick:()=>{setVocab.splice(i,1);renderVocab();$('#vocabIn').focus()}}))));
   vocabHint();
 }
 function vocabHint(){
   const m=setVocab.length,n=sttVocabFit(setF.stt_lang.value,setVocab);
-  $('#vocabHint').textContent=!m?'用於語音辨識、逐字稿整理與摘要。沒有詞彙就不使用。'
-    :n===m?`${m} 個詞都會送進語音辨識`:`前 ${n} 個詞會送進語音辨識，其餘 ${m-n} 個只用於整理與摘要`;
+  $('#vocabHint').textContent=!m?tr('用於語音辨識、逐字稿整理與摘要。沒有詞彙就不使用。')
+    :n===m?tr('{m} 個詞都會送進語音辨識',{m}):tr('前 {n} 個詞會送進語音辨識，其餘 {rest} 個只用於整理與摘要',{n,rest:m-n});
 }
 $('#vocabBox').onclick=e=>{if(e.target===e.currentTarget)$('#vocabIn').focus()};
 $('#vocabIn').addEventListener('keydown',e=>{
@@ -1803,12 +1825,12 @@ async function loadSug(){
 const scanning=()=>['queued','running'].includes(SUG?.last_scan?.status);
 function renderSug(){
   $('#sugBox').hidden=!SUG;if(!SUG)return;
-  $('#sugList').replaceChildren(...(SUG.suggestions.length?SUG.suggestions.map(sugRow):[h('li',{class:'hint',text:'還沒有建議。累積更多錄音後會自動分析。'})]));
+  $('#sugList').replaceChildren(...(SUG.suggestions.length?SUG.suggestions.map(sugRow):[h('li',{class:'hint',text:tr('還沒有建議。累積更多錄音後會自動分析。')})]));
   const l=SUG.last_scan;
   $('#sugMeta').replaceChildren(...[
-    scanning()?'分析中…':l?.status==='error'?`上次分析失敗：${l.error||''}`:l?`上次分析：${fmtDate(l.at)}`:null,
-    !scanning()&&SUG.pending?h('button',{type:'button',class:'linkbtn',text:'立即分析',onclick:scanNow}):null,
-  ].filter(Boolean).flatMap((x,i)=>i?['・',x]:[x]));
+    scanning()?tr('分析中…'):l?.status==='error'?tr('上次分析失敗：{msg}',{msg:l.error||''}):l?tr('上次分析：{time}',{time:fmtDate(l.at)}):null,
+    !scanning()&&SUG.pending?h('button',{type:'button',class:'linkbtn',text:tr('立即分析'),onclick:scanNow}):null,
+  ].filter(Boolean).flatMap((x,i)=>i?[' · ',x]:[x]));
 }
 async function scanNow(e){
   e.currentTarget.disabled=true;setMsg('');
@@ -1816,19 +1838,19 @@ async function scanNow(e){
   loadSug();
 }
 function sugRow(s){
-  const meta=[`出現 ${s.hits} 次`,`${s.recordings} 份錄音`,s.misheard.length?`曾被聽成「${s.misheard.slice(0,3).join('」「')}」`:null].filter(Boolean).join('・');
-  const act=(label,cls,path,done)=>h('button',{type:'button',class:cls,text:label,'aria-label':`${label}「${s.term}」`,onclick:async e=>{
+  const meta=[tr('出現 {n} 次',{n:s.hits}),tr('{n} 份錄音',{n:s.recordings}),s.misheard.length?tr('曾被聽成「{list}」',{list:s.misheard.slice(0,3).join(tr('」「'))}):null].filter(Boolean).join(' · ');
+  const act=(label,cls,path,done)=>h('button',{type:'button',class:cls,text:label,'aria-label':tr('{action}「{term}」',{action:label,term:s.term}),onclick:async e=>{
     const b=e.currentTarget;b.disabled=true;setMsg('');
     try{done(await api(path,{method:'POST',body:{term:s.term}}));SUG.suggestions=SUG.suggestions.filter(x=>x!==s);renderSug()}
     catch(err){setMsg(err.message);b.disabled=false}}});
   return h('li',{class:'prow'},h('span',{class:'pn'},h('b',{text:s.term}),h('span',{class:'pm',text:meta})),
-    act('加入','','/api/vocab/suggestions/add',set=>{SET={...SET_DEF,...set};if(!setVocab.includes(s.term))setVocab.push(s.term);renderVocab()}),
-    act('忽略','ghost','/api/vocab/suggestions/dismiss',()=>{}));
+    act(tr('加入'),'','/api/vocab/suggestions/add',set=>{SET={...SET_DEF,...set};if(!setVocab.includes(s.term))setVocab.push(s.term);renderVocab()}),
+    act(tr('忽略'),'ghost','/api/vocab/suggestions/dismiss',()=>{}));
 }
 
 function renderPersons(){
-  $('#personList').replaceChildren(...(personsErr?[h('li',{class:'hint',text:'無法載入講者：'+personsErr})]
-    :PERSONS.length?PERSONS.map(personRow):[h('li',{class:'hint',text:'還沒有講者。在逐字稿中為講者命名後會出現在這裡。'})]));
+  $('#personList').replaceChildren(...(personsErr?[h('li',{class:'hint',text:tr('無法載入講者：{msg}',{msg:personsErr})})]
+    :PERSONS.length?PERSONS.map(personRow):[h('li',{class:'hint',text:tr('還沒有講者。在逐字稿中為講者命名後會出現在這裡。')})]));
 }
 async function personsChanged(list){
   if(Array.isArray(list))PERSONS=list;else await loadPersons();
@@ -1837,26 +1859,26 @@ async function personsChanged(list){
 }
 function personRow(p){
   const li=h('li',{class:'prow'});
-  const meta=[`${p.prints||0} 個聲紋`,p.speakers?`${p.speakers} 位講者`:null].filter(Boolean).join(' · ');
+  const meta=[tr('{n} 個聲紋',{n:p.prints||0}),p.speakers?tr('{n} 位講者',{n:p.speakers}):null].filter(Boolean).join(' · ');
   const btn=(text,fn,cls)=>h('button',{type:'button',class:cls,text,onclick:fn});
   const view=()=>li.replaceChildren(
-    h('span',{class:'pn'},p.name,p.id===SET.me?h('span',{class:'me',text:'（我）'}):null,h('span',{class:'pm',text:meta})),
-    btn('改名',rename,'ghost'),btn('刪除',del,'ghost danger'));
+    h('span',{class:'pn'},p.name,p.id===SET.me?h('span',{class:'me',text:tr('（我）')}):null,h('span',{class:'pm',text:meta})),
+    btn(tr('改名'),rename,'ghost'),btn(tr('刪除'),del,'ghost danger'));
   // in-row confirm: message, 取消, action
-  const ask=(msg,label,fn,cls)=>{li.replaceChildren(h('span',{class:'pn',text:msg}),btn('取消',view),
+  const ask=(msg,label,fn,cls)=>{li.replaceChildren(h('span',{class:'pn',text:msg}),btn(tr('取消'),view),
     btn(label,async e=>{e.currentTarget.disabled=true;setMsg('');await fn()},cls));li.querySelector('button:last-child').focus()};
   function rename(){
-    const inp=h('input',{type:'text',value:p.name,maxlength:'100','aria-label':`「${p.name}」的新名稱`});
+    const inp=h('input',{type:'text',value:p.name,maxlength:'100','aria-label':tr('「{name}」的新名稱',{name:p.name})});
     const ok=()=>{const name=inp.value.trim();if(!name||name===p.name)view();else patch(name,false)};
     inp.onkeydown=e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();ok()}else if(e.key==='Escape'){e.preventDefault();view()}};
-    li.replaceChildren(inp,btn('取消',view),btn('確定',ok,'primary'));inp.focus();inp.select();
+    li.replaceChildren(inp,btn(tr('取消'),view),btn(tr('確定'),ok,'primary'));inp.focus();inp.select();
   }
   async function patch(name,merge){
     try{await personsChanged(await api(`/api/persons/${p.id}`,{method:'PATCH',body:merge?{name,merge:true}:{name}}))}
-    catch(e){if(e.status===409&&!merge)ask(`「${name}」已存在，要合併嗎？`,'合併',()=>patch(name,true),'primary');else{setMsg(e.message);view()}}
+    catch(e){if(e.status===409&&!merge)ask(tr('「{name}」已存在，要合併嗎？',{name}),tr('合併'),()=>patch(name,true),'primary');else{setMsg(e.message);view()}}
   }
   function del(){
-    ask(`刪除「${p.name}」？${p.prints||0} 個聲紋會一併刪除`,'刪除',async()=>{
+    ask(tr('刪除「{name}」？{n} 個聲紋會一併刪除',{name:p.name,n:p.prints||0}),tr('刪除'),async()=>{
       try{await api(`/api/persons/${p.id}`,{method:'DELETE'});await personsChanged()}catch(e){setMsg(e.message);view()}},'danger');
   }
   view();return li;
@@ -1888,10 +1910,10 @@ $('#pushOn').onchange=async e=>{
   try{
     if(on.checked){
       // ask first: iOS only shows the prompt inside the user gesture
-      if(await Notification.requestPermission()!=='granted'){on.checked=false;toast('通知權限被封鎖，請到瀏覽器或系統設定允許 Yanroku 通知',5000);return}
+      if(await Notification.requestPermission()!=='granted'){on.checked=false;toast(tr('通知權限被封鎖，請到瀏覽器或系統設定允許 Yanroku 通知'),5000);return}
       const sub=await (await swReg).pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64uBytes(PUSH_KEY)});
       await api('/api/push/subscribe',{method:'POST',body:sub.toJSON()});
-      toast('已開啟通知');
+      toast(tr('已開啟通知'));
     }else{
       const sub=await (await swReg).pushManager.getSubscription();
       if(sub){await api('/api/push/subscribe',{method:'DELETE',body:{endpoint:sub.endpoint}});await sub.unsubscribe()}
@@ -1899,7 +1921,7 @@ $('#pushOn').onchange=async e=>{
   }catch(err){on.checked=!on.checked;fail(err)}
   finally{on.disabled=false;$('#pushTest').hidden=!on.checked}
 };
-$('#pushTest').onclick=()=>api('/api/push/test',{method:'POST'}).then(()=>toast('已送出測試通知'),fail);
+$('#pushTest').onclick=()=>api('/api/push/test',{method:'POST'}).then(()=>toast(tr('已送出測試通知')),fail);
 
 /* ---------- keyboard ---------- */
 addEventListener('keydown',e=>{
@@ -1927,7 +1949,8 @@ function start(){
    use window.yanroku: hold() to keep the app from starting, start() when ready, setTokenProvider() to add a bearer token
    to every API call and upload, onUnauthorized() to handle a 401 (e.g. sign in again). See docs/SPEC.md "Extending the server". */
 let tokenProvider=null, unauthorized=null;
-const yanroku=window.yanroku={
+// i18n.js already created window.yanroku (t, lang, locale, setLang, addMessages, applyI18n): extend it, don't replace it
+const yanroku=Object.assign(window.yanroku,{
   config:null,
   held:false,
   hold(){this.held=true},
@@ -1936,7 +1959,7 @@ const yanroku=window.yanroku={
   setTokenProvider(fn){tokenProvider=fn},
   onUnauthorized(fn){unauthorized=fn},
   h,$,showAlert,toast,
-};
+});
 async function authHeaders(){
   const t=tokenProvider&&await Promise.resolve().then(tokenProvider).catch(()=>null);
   return t?{Authorization:'Bearer '+t}:{};
@@ -1944,13 +1967,13 @@ async function authHeaders(){
 function loadJs(src,attrs={}){
   return new Promise((res,rej)=>{
     const el=h('script',{src,crossorigin:'anonymous',...attrs});
-    el.onload=res;el.onerror=()=>rej(new Error('無法載入 '+src));document.head.append(el);
+    el.onload=res;el.onerror=()=>rej(new Error(tr('無法載入 {src}',{src})));document.head.append(el);
   });
 }
 async function boot(){
   try{const r=await fetch('/api/config');if(r.ok)yanroku.config=await r.json()}catch{}
   for(const src of yanroku.config?.extensions??[])
-    if(/^\/(?!\/)/.test(src))await loadJs(src).catch(e=>showAlert('擴充元件無法載入：'+e.message)); // same-origin paths only
+    if(/^\/(?!\/)/.test(src))await loadJs(src).catch(e=>showAlert(tr('擴充元件無法載入：{msg}',{msg:e.message}))); // same-origin paths only
   if(!yanroku.held)start();
 }
 boot();
