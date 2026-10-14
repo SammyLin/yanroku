@@ -1,0 +1,16 @@
+{
+  "name": "Yanroku",
+  "short_name": "Yanroku",
+  "description": "録音や音声のインポートから、話者付きの文字起こしと要約を自動で作成します。",
+  "lang": "ja",
+  "start_url": "/#/recent",
+  "display": "standalone",
+  "background_color": "#142D3B",
+  "theme_color": "#142D3B",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

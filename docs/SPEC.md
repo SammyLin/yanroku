@@ -266,6 +266,13 @@ export function createWorker<E extends Env = Env>(opts: WorkerOptions<E>): Expor
 | `setTokenProvider(fn)` | `async () => string \| null`; a token becomes `Authorization: Bearer` on every API call and upload part |
 | `onUnauthorized(fn)` | called on any 401 instead of the default "登入已過期" alert |
 | `h`, `$`, `showAlert`, `toast` | the page's DOM helpers |
+| `t(zh, vars)` | UI string in the current language; keyed by the zh-Hant source, `{name}` placeholders, `{n\|one\|other}` plural; a missing key returns the zh source |
+| `lang`, `locale` | `'zh-Hant' \| 'en' \| 'ja'` and its Intl locale (`zh-TW` / `en-US` / `ja-JP`) for dates and numbers |
+| `setLang(lang)` | persist (`localStorage['yanroku.lang']`) and reload |
+| `addMessages(lang, dict)` | add an extension's own strings: `addMessages('en', {'雲端方案': 'Cloud plan'})` |
+| `applyI18n(root?)` | translate markup with `data-i18n` (text) / `data-i18n-placeholder` / `-title` / `-aria-label` (empty value = current text is the key) |
+
+- UI language (`web/public/i18n.js`, loaded before the app and the extensions, so `t` works immediately): `?lang=` (persisted) → `localStorage['yanroku.lang']` → `navigator.languages` (zh* → zh-Hant, ja*, en*) → `en`. The picker is in 設定 › 介面. `localStorage['yanroku.i18nDebug']='1'` logs missing keys. Server strings and LLM prompts stay zh; a few Worker/runner messages the UI shows verbatim are in the dictionaries.
 
   The hashchange router does nothing while `#app` is hidden, so an extension that shows its own page owns the hash then. The header and nav each have an empty `<div data-user hidden>` slot for an account menu. Self-host lists no extensions, so the app starts as it always did.
 
