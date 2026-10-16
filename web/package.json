@@ -6,7 +6,7 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "check": "tsc",
-    "test": "node test/auth.test.ts && node test/voice.test.ts && node test/settings.test.ts && node test/push.test.ts && node test/transfer.test.ts",
+    "test": "node test/auth.test.ts && node test/voice.test.ts && node test/settings.test.ts && node test/push.test.ts && node test/transfer.test.ts && node test/zip.test.ts",
     "test:isolation": "sh test/isolation.sh",
     "test:migrate": "sh test/migrate.sh"
   },
