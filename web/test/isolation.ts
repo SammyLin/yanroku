@@ -215,6 +215,17 @@ export async function runIsolation(o: IsolationOptions) {
     n404("POST", "/api/vocab/suggestions/dismiss", { term: "A-term" }),
     ["POST", "/api/vocab/scan", async () => { const r = await call(B, "POST", "/api/vocab/scan"); assert.ok([200, 409].includes(r.status), r.text); }],
 
+    // export / import (transfer.ts; the suite runs with TRANSFER_ENABLED=1)
+    ["GET", "/api/export", async () => {
+      const e = await ok(call(B, "GET", "/api/export"));
+      notIn(e.recordings, recA, "export recordings"), notIn(e.folders, fA, "export folders"), notIn(e.people, pA, "export people"), notIn(e.asks, askA, "export asks");
+      assert.ok(!JSON.stringify(e).includes("A-about-secret") && !JSON.stringify(e).includes("A-vocab"), "export leaks A's settings");
+      const mine = await ok(call(A, "GET", `/api/export/recordings/${recA}`));
+      assert.equal(mine.recording.id, recA);
+      assert.equal(mine.speakers[0].embedding.length, EMB.length, "A's export carries the speaker embedding");
+    }],
+    n404("GET", `/api/export/recordings/${recA}`),
+
     runnerOnly("POST", "/api/runner/claim"),
     runnerOnly("POST", `/api/runner/recordings/${recA}/heartbeat`),
     runnerOnly("GET", `/api/runner/recordings/${recA}/source`, null),
