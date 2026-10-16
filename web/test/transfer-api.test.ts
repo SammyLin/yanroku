@@ -131,6 +131,7 @@ assert.equal((await runner("POST", "/api/runner/claim", R)).job, null, "an impor
 const second = await importAll();
 assert.deepEqual(second.results, ["skipped", "skipped"]);
 assert.equal((await api(B, "GET", "/api/recordings")).length, 3);
+assert.equal((await api(B, "GET", "/api/asks")).length, 1, "a second import duplicated 問問看");
 
 // ---- a broken manifest is refused before anything is written
 const bad = await call(BASE, B, "POST", "/api/import/meta", { manifest: { ...idx.manifest, version: 2 }, folders: [{ id: 99, parent_id: null, name: "Never" }], people: [], settings: {}, vocab: [] });

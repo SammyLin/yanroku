@@ -192,8 +192,10 @@ async function importAsks(req: Request, env: Env, uid: number) {
   const b = await readJSON<{ asks?: unknown; recordings?: unknown }>(req);
   const map = keepOwn(ints(b.recordings), await ownIds(env, "recordings", uid));
   const asks = (Array.isArray(b.asks) ? b.asks : []).filter((a) => str(a?.question, 1000));
+  // the same ask (question + time) already here = an earlier import of this zip: skip it
   if (asks.length) await env.DB.batch(asks.map((a) => env.DB.prepare(`INSERT INTO asks(question, answer_md, sources, status, created_at, user_id)
-    VALUES(?, ?, ?, 'done', coalesce(?, datetime('now')), ?)`).bind(a.question, typeof a.answer_md === "string" ? rewriteCitations(a.answer_md, map) : null,
+    SELECT ?1, ?2, ?3, 'done', coalesce(?4, datetime('now')), ?5
+    WHERE NOT EXISTS(SELECT 1 FROM asks WHERE user_id=?5 AND question=?1 AND created_at=?4)`).bind(a.question, typeof a.answer_md === "string" ? rewriteCitations(a.answer_md, map) : null,
     JSON.stringify(mapSources(Array.isArray(a.sources) ? a.sources.filter(Number.isInteger) : [], map)), typeof a.created_at === "string" ? a.created_at : null, uid)));
   return { imported: asks.length };
 }
