@@ -225,6 +225,29 @@ export async function runIsolation(o: IsolationOptions) {
       assert.equal(mine.speakers[0].embedding.length, EMB.length, "A's export carries the speaker embedding");
     }],
     n404("GET", `/api/export/recordings/${recA}`),
+    // import: ids in the body are the zip's (another server's), never a way into A's rows
+    ["POST", "/api/import/meta", async () => {
+      const m = await ok(call(B, "POST", "/api/import/meta", { manifest: { format: "yanroku-export", version: 1 },
+        folders: [{ id: fA, parent_id: null, name: "imported" }], people: [{ id: pA, name: "Alice" }], settings: { me: pA }, vocab: [] }));
+      assert.notEqual(m.folders[fA], fA, "import reused A's folder"), assert.notEqual(m.people[pA], pA, "import reused A's person");
+      assert.notEqual((await ok(call(B, "GET", "/api/settings"))).me, pA, "import pointed B's me at A's person");
+    }],
+    ["POST", "/api/import/recordings", async () => {
+      const r = await ok(call(B, "POST", "/api/import/recordings", { recording: { import_key: "x#1", title: "t" }, folder_id: fA, people: { 1: pA }, size: 1,
+        speakers: [{ id: 1, label: "SPEAKER_00", display_name: "x", person_id: 1, auto: 0, embedding: null, emb_model: null }],
+        voiceprints: [{ speaker_id: 1, person_id: pA, embedding: EMB, emb_model: MODEL }], segments: [], summaries: [] }));
+      const d = await ok(call(B, "GET", `/api/recordings/${r.recording_id}`));
+      assert.equal(d.recording.folder_id, null, "import placed B's recording in A's folder");
+      assert.equal(d.speakers[0].person_id, null, "import linked B's speaker to A's person");
+      assert.ok(!(await ok(call(A, "GET", "/api/persons"))).some((p: { id: number; prints: number }) => p.id === pA && p.prints > 1), "import added a voiceprint to A's person");
+    }],
+    n404("POST", `/api/import/recordings/${recA}/complete`, { parts: [{ part: 1, etag: "x" }] }),
+    ["POST", "/api/import/asks", async () => {
+      await ok(call(B, "POST", "/api/import/asks", { asks: [{ question: "imported?", answer_md: `[[1@00:00]]`, sources: [1] }], recordings: { 1: recA } }));
+      const mine = await ok(call(B, "GET", "/api/asks"));
+      const got = await ok(call(B, "GET", `/api/asks/${mine.find((a: { question: string }) => a.question === "imported?").id}`));
+      assert.ok(!JSON.stringify(got).includes(`${recA}@`) && !(got.sources ?? []).includes?.(recA), "imported ask cites A's recording");
+    }],
 
     runnerOnly("POST", "/api/runner/claim"),
     runnerOnly("POST", `/api/runner/recordings/${recA}/heartbeat`),
