@@ -73,6 +73,7 @@ npx wrangler r2 bucket create yanroku-audio
 | `routes[0].pattern` | 你的網域（`custom_domain: true`，該網域的 zone 必須在同一個 Cloudflare 帳號） |
 | `vars.ACCESS_TEAM` / `ACCESS_AUD` | 第 3 步取得 |
 | `VAPID_PUBLIC_KEY` / `VAPID_SUBJECT` + secret `VAPID_PRIVATE_KEY` | 選配，Web Push「處理完成」通知。不設就沒有推播（格式見 `web/src/push.ts` 開頭註解） |
+| `TRANSFER_ENABLED` | 選配，設成 `"1"` 才會在「設定 › 搬家」出現匯出／匯入：把帳號整個搬到另一台伺服器（Yanroku Cloud ⇄ 自架）。不設就關閉，相關 API 回 404 |
 
 > 也可以直接改最上層那幾個欄位，但之後 `git pull` 會一直和上游衝突，用 env 比較乾淨。
 
