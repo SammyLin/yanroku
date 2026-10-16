@@ -13,6 +13,7 @@
   // ACCESS_TEAM = <team> of <team>.cloudflareaccess.com, ACCESS_AUD = Access app audience tag. Unset → API answers 503.
   // VOICE_MATCH_THRESHOLD = min cosine for auto-labelling a speaker from a voiceprint.
   // VAPID_PUBLIC_KEY / VAPID_SUBJECT = Web Push sender (src/push.ts); VAPID_PRIVATE_KEY is a secret (base64url raw d). Keys unset → no push.
+  // TRANSFER_ENABLED: "1" turns on export / import (設定 › 搬家, src/transfer.ts); unset = off
   "vars": { "VAPID_PUBLIC_KEY": "BPLCqHM9d8Pmpx48hRoT5LjiqO7ZtbZI5H32D-D-HEwuszFnm-gYTVgs5kpuGBUVACReh7S-DKyIlRx7fe663Ek", "VAPID_SUBJECT": "mailto:sammylintw@gmail.com", "VOICE_MATCH_THRESHOLD": "0.65", "VOICE_SUGGEST_THRESHOLD": "0.50", "ACCESS_TEAM": "3mi", "ACCESS_AUD": "0cf4c83df1ba97488cd09b937aeafe8f11fe463659bbaf2f537504e8d13dd486" },
   "routes": [{ "pattern": "records.3mi.ai", "custom_domain": true }],
   "workers_dev": false,
