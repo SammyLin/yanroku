@@ -18,12 +18,15 @@ export function checkManifest(m: unknown): string | null {
 
 type Validate = (patch: Record<string, unknown>) => Partial<Settings> | string; // settings.ts parseSettings (passed in: type-only imports here)
 
-/** Settings to write on import: only keys the account hasn't set (`existing` = its stored rows), each valid on its own;
- *  `me` follows the imported person; vocab is the union, the account's own terms first, capped at 200. */
-export function mergeSettings(existing: Record<string, unknown>, incoming: Record<string, unknown>, people: IdMap, parseSettings: Validate): Partial<Settings> {
+/** Settings to write on import: only keys the account hasn't set (`existing` = its stored rows; the web app saves every
+ *  key, so a stored value still equal to its default counts as unset), each valid on its own; `me` follows the imported
+ *  person; vocab is the union, the account's own terms first, capped at 200. */
+export function mergeSettings(existing: Record<string, unknown>, incoming: Record<string, unknown>, people: IdMap, parseSettings: Validate,
+  defaults: Record<string, unknown> = {}): Partial<Settings> {
   const out: Record<string, unknown> = {};
+  const isSet = (k: string) => k in existing && JSON.stringify(existing[k]) !== JSON.stringify(defaults[k]);
   for (const [k, v] of Object.entries(incoming ?? {})) {
-    if (k === "vocab" || k in existing) continue;
+    if (k === "vocab" || isSet(k)) continue;
     const value = k === "me" ? (v == null ? null : people[v as number] ?? undefined) : v;
     if (value === undefined) continue;
     const ok = parseSettings({ [k]: value });

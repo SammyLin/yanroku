@@ -1,6 +1,6 @@
 // node test/transfer.test.ts — export / import: the TRANSFER_ENABLED switch and the pure merge helpers (transfer-merge.ts).
 import assert from "node:assert/strict";
-import { parseSettings } from "../src/settings.ts";
+import { DEFAULTS, parseSettings } from "../src/settings.ts";
 import { checkManifest, folderPlan, mapSources, mergeSettings, rewriteCitations, transferEnabled } from "../src/transfer-merge.ts";
 
 assert.equal(transferEnabled({ TRANSFER_ENABLED: "1" } as any), true);
@@ -21,6 +21,10 @@ assert.deepEqual(
 assert.deepEqual(mergeSettings({}, { me: 9 }, {}, parseSettings), {}); // that person wasn't imported → me dropped
 assert.deepEqual(mergeSettings({}, { stt_lang: "de" }, {}, parseSettings), {}); // an invalid value is dropped, not an error
 assert.deepEqual(mergeSettings({ me: 3 }, { me: 7 }, { 7: 70 }, parseSettings), {}); // the account's own me wins
+// the web app saves every key: a stored value still at its default counts as unset, so a moved account's settings arrive
+assert.deepEqual(mergeSettings({ about: "", me: null, stt_lang: "zh", cleanup: true, vocab: [] }, { about: "A", me: 7, stt_lang: "ja", cleanup: false }, { 7: 70 }, parseSettings, DEFAULTS),
+  { about: "A", me: 70, stt_lang: "ja", cleanup: false });
+assert.deepEqual(mergeSettings({ about: "mine" }, { about: "A" }, {}, parseSettings, DEFAULTS), {}); // a real value of its own still wins
 
 // 問問看 citations and sources follow the new recording ids; an id that wasn't imported is dropped
 assert.equal(rewriteCitations("見 [[12@01:00, 13@02:00]] 與 [[14@00:05]]", { 12: 112, 14: 114 }), "見 [[112@01:00]] 與 [[114@00:05]]");

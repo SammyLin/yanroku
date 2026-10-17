@@ -28,13 +28,14 @@ function chunks<T>(items: T[]): T[][] {
 
 // ids the client sends back from an earlier step are only trusted when they are this user's
 async function ownIds(env: Env, table: "people" | "folders" | "recordings", uid: number) {
-  const { results } = await env.DB.prepare(`SELECT id FROM ${table} WHERE user_id=?`).bind(uid).all<{ id: number }>();
+  const visible = table === "recordings" ? ` AND status != 'importing'` : ""; // a half-imported recording is never cited
+  const { results } = await env.DB.prepare(`SELECT id FROM ${table} WHERE user_id=?${visible}`).bind(uid).all<{ id: number }>();
   return new Set(results.map((r) => r.id));
 }
 const keepOwn = (map: IdMap, own: Set<number>): IdMap => Object.fromEntries(Object.entries(map).filter(([, v]) => own.has(v)));
 const json = (v: string | null) => (v == null ? null : JSON.parse(v));
 // what moves: finished recordings outside the trash (the zip carries their play.m4a)
-const EXPORTABLE = `status='done' AND deleted_at IS NULL`;
+const EXPORTABLE = `status='done' AND play_key IS NOT NULL AND deleted_at IS NULL`;
 
 const gate = (h: Handler): Handler => (req, env, p, url, ctx, uid) => {
   if (!transferEnabled(env)) throw new HttpError(404, "not found");
@@ -51,7 +52,8 @@ async function exportIndex(env: Env, uid: number, origin: string) {
     db.prepare(`SELECT term, misheard, kind, status FROM vocab_suggestions WHERE user_id=? AND status != 'new' ORDER BY term`).bind(uid),
     db.prepare(`SELECT id, question, answer_md, sources, created_at FROM asks WHERE user_id=? AND status='done' ORDER BY id`).bind(uid),
     db.prepare(`SELECT id, import_key, size, title FROM recordings WHERE user_id=? AND ${EXPORTABLE} ORDER BY created_at, id`).bind(uid),
-    db.prepare(`SELECT id, title, status FROM recordings WHERE user_id=? AND deleted_at IS NULL AND status NOT IN ('done','importing') ORDER BY id`).bind(uid),
+    db.prepare(`SELECT id, title, status FROM recordings WHERE user_id=? AND deleted_at IS NULL AND status != 'importing'
+      AND NOT (status='done' AND play_key IS NOT NULL) ORDER BY id`).bind(uid),
   ])).map((r) => r.results as Record<string, any>[]);
   return {
     manifest: { format: EXPORT_FORMAT, version: EXPORT_VERSION, exported_at: new Date().toISOString(), source: origin,
@@ -107,7 +109,7 @@ async function importMeta(req: Request, env: Env, uid: number) {
   }
   const { results: stored } = await db.prepare(`SELECT key, value FROM settings WHERE user_id=?`).bind(uid).all<{ key: string; value: string }>();
   const existing = Object.fromEntries(stored.map((r) => [r.key, JSON.parse(r.value)]));
-  await putSettings(env, uid, mergeSettings(existing, (b.settings ?? {}) as Record<string, unknown>, people, parseSettings));
+  await putSettings(env, uid, mergeSettings(existing, (b.settings ?? {}) as Record<string, unknown>, people, parseSettings, DEFAULTS));
   const decided = (Array.isArray(b.vocab) ? b.vocab : []).filter((v) => str(v?.term, 50) && ["added", "dismissed"].includes(v?.status));
   if (decided.length) await db.batch(decided.map((v) => db.prepare(`INSERT INTO vocab_suggestions(user_id, term, misheard, kind, status) VALUES(?, ?, ?, ?, ?)
     ON CONFLICT(user_id, term) DO NOTHING`).bind(uid, v.term, JSON.stringify(Array.isArray(v.misheard) ? v.misheard : []), typeof v.kind === "string" ? v.kind : null, v.status)));
@@ -127,7 +129,8 @@ async function importRecording(req: Request, env: Env, uid: number) {
   const db = env.DB;
   const prior = await db.prepare(`SELECT id, status, source_key, play_key, upload_id FROM recordings WHERE user_id=? AND import_key=?`).bind(uid, key)
     .first<{ id: number; status: string; source_key: string | null; play_key: string | null; upload_id: string | null }>();
-  if (prior?.status === "done") return { skipped: true, recording_id: prior.id };
+  // imported before and finished (maybe retranscribed or edited since): it is the person's recording now
+  if (prior && prior.status !== "importing") return { skipped: true, recording_id: prior.id };
   if (prior) { // an earlier import stopped half way: start this one over
     if (prior.upload_id && prior.source_key) await env.AUDIO.resumeMultipartUpload(prior.source_key, prior.upload_id).abort().catch(() => {});
     const keys = [prior.source_key, prior.play_key].filter((k): k is string => !!k);

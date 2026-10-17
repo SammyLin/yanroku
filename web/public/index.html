@@ -2015,6 +2015,8 @@ function xferImport(file)
       res.failed.map(x=>tr('失敗：{title}（{error}）',{title:x.title,error:x.error})));
     if(res.failed.length){const again=h('button',{type:'button',class:'ghost',text:tr('重試失敗的項目'),onclick:()=>xferImport(xferFileSel)});$('#xferList').append(h('li',{},again))}
     loadFolders();loadList();
+    // the dialog is still open: show the merged settings and people, so 儲存 doesn't write the old form back over them
+    await Promise.all([loadSettings(),loadPersons()]);fillSettings();renderPersons();
   });
 }
 async function authHeaders(){

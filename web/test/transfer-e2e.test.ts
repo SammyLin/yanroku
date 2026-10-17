@@ -7,7 +7,7 @@ await import("../public/zip.js");
 await import("../public/transfer.js");
 const T = (globalThis as any).YanrokuTransfer, Z = (globalThis as any).YanrokuZip;
 const BASE = process.env.BASE!;
-const RUN = { "X-Test-Runner": "1" }, R = { runner: "e2e" };
+const RUN = { "X-Test-Runner": "1" }, R = { runner: "e2e" }; // runner name follows the job each record() claimed
 
 function client(uid: number, counter = { n: 0 }) {
   const h = { "X-Test-Uid": String(uid) };
@@ -44,12 +44,16 @@ async function record(name: string, folder_id: number | null, text: string, audi
   const { recording_id: rid } = await u3.api("/api/uploads", { method: "POST", body: { filename: name, size: 4, folder_id } });
   const { etag } = await u3.upload(rid, 1, new Blob(["abcd"]));
   await u3.api(`/api/uploads/${rid}/complete`, { method: "POST", body: { parts: [{ part: 1, etag }] } });
-  const { job } = await runner("POST", "/api/runner/claim", R);
-  assert.equal(job.id, rid);
+  // transfer-api.test.ts (same Worker) leaves a retranscribe queued: claim until ours comes up
+  for (let i = 0; ; i++) {
+    const { job } = await runner("POST", "/api/runner/claim", { runner: `e2e-${rid}-${i}` });
+    assert.ok(job && i < 10, `recording ${rid} never claimed`);
+    if (job.kind === "recording" && job.id === rid) { R.runner = `e2e-${rid}-${i}`; break; }
+  }
   await runner("POST", `/api/runner/recordings/${rid}/transcript`, { ...R, duration_s: 1,
     speakers: [{ label: "SPEAKER_00", display_name: "Speaker 1", embedding: [0.6, 0.8], emb_model: "eres2net-large-zh-cn" }],
     segments: [{ start_ms: 0, end_ms: 900, speaker: 0, text_raw: text }] });
-  await runner("PUT", `/api/runner/recordings/${rid}/play?runner=e2e`, new TextEncoder().encode(audio));
+  await runner("PUT", `/api/runner/recordings/${rid}/play?runner=${R.runner}`, new TextEncoder().encode(audio));
   await runner("POST", `/api/runner/recordings/${rid}/done`, R);
   return rid as number;
 }
@@ -74,6 +78,17 @@ assert.ok(entries.has("manifest.json") && entries.has("data.json") && entries.ha
 const file = new File([blob], "yanroku-export.zip");
 const seen = await T.inspect(file);
 assert.equal(seen.manifest.counts.recordings, 2);
+
+// ---- one recording's audio can't be fetched: it is skipped with the reason, the rest still export
+{
+  const flaky = { ...u3, media: async (id: number) => { if (id === b) throw new Error("network down"); return u3.media(id); } };
+  const part = await T.exportAll(flaky, () => {});
+  assert.deepEqual(part.skipped.map((r: { id: number; error?: string }) => [r.id, r.error]), [[b, "network down"]]);
+  const ents = await Z.readZip(part.blob);
+  assert.ok(ents.has(`audio/${a}.m4a`) && !ents.has(`audio/${b}.m4a`));
+  const data = JSON.parse(await ents.get("data.json").blob().text());
+  assert.deepEqual(data.recordings.map((r: { recording: { id: number } }) => r.recording.id), [a]);
+}
 
 // ---- import into user 4
 const u4 = client(4);

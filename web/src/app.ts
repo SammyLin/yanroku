@@ -280,7 +280,7 @@ export const routes: Route[] = [
   // ---- folders
   ["GET", /^\/api\/folders$/, async (_req, env, _p, _u, _c, uid) => {
     const { results } = await env.DB.prepare(`SELECT f.id, f.parent_id, f.name,
-      (SELECT count(*) FROM recordings r WHERE r.folder_id=f.id AND r.deleted_at IS NULL) AS count FROM folders f WHERE f.user_id=? ORDER BY f.name, f.id`).bind(uid).all();
+      (SELECT count(*) FROM recordings r WHERE r.folder_id=f.id AND r.deleted_at IS NULL AND r.status != 'importing') AS count FROM folders f WHERE f.user_id=? ORDER BY f.name, f.id`).bind(uid).all();
     return results;
   }],
 

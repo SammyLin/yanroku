@@ -14,19 +14,24 @@
     const w = new (Z().ZipWriter)();
     const recordings = [];
     let bytes = 0;
+    const skipped = [...(idx.left_out ?? [])];
     for (const [i, r] of idx.recordings.entries()) {
-      const detail = await client.api(`/api/export/recordings/${r.id}`);
-      const audio = await client.media(r.id);
-      await w.add(`audio/${r.id}.m4a`, audio);
-      recordings.push(detail);
-      bytes += audio.size;
+      try { // one recording that can't be fetched is left out (and listed), not the whole export
+        const detail = await client.api(`/api/export/recordings/${r.id}`);
+        const audio = await client.media(r.id);
+        await w.add(`audio/${r.id}.m4a`, audio);
+        recordings.push(detail);
+        bytes += audio.size;
+      } catch (e) {
+        skipped.push({ id: r.id, title: r.title, status: "error", error: e.message || String(e) });
+      }
       onProgress({ done: i + 1, total: idx.recordings.length, bytes, title: r.title });
     }
     const manifest = { ...idx.manifest, counts: { recordings: recordings.length, people: idx.people.length, folders: idx.folders.length, asks: idx.asks.length } };
     const data = { folders: idx.folders, people: idx.people, settings: idx.settings, vocab: idx.vocab, asks: idx.asks, recordings };
     await w.add("manifest.json", JSON.stringify(manifest, null, 2));
     await w.add("data.json", JSON.stringify(data));
-    return { blob: w.finish(), skipped: idx.left_out ?? [] };
+    return { blob: w.finish(), skipped };
   }
 
   /** Opens a zip and checks it is ours → { manifest, data, entries }; throws a readable message otherwise (no requests). */
@@ -61,14 +66,14 @@
         const speakers = new Set(rec.speakers.map((s) => s.id));
         const res = await client.api("/api/import/recordings", { method: "POST", body: { ...rec, size: audio.size, people: map.people,
           folder_id: map.folders[rec.recording.folder_id] ?? null, voiceprints: prints.filter((v) => speakers.has(v.speaker_id)) } });
-        recMap[rec.recording.id] = res.recording_id;
-        if (res.skipped) { skipped.push(title); continue; }
+        if (res.skipped) { recMap[rec.recording.id] = res.recording_id; skipped.push(title); continue; }
         const blob = audio.blob(), parts = [];
         for (let n = 0; n === 0 || n * res.part_size < blob.size; n++) {
           const { etag } = await client.upload(res.recording_id, n + 1, blob.slice(n * res.part_size, (n + 1) * res.part_size));
           parts.push({ part: n + 1, etag });
         }
         await client.api(`/api/import/recordings/${res.recording_id}/complete`, { method: "POST", body: { parts } });
+        recMap[rec.recording.id] = res.recording_id; // only finished recordings are cited by imported 問問看
         imported.push(title);
       } catch (e) {
         failed.push({ title, error: e.message || String(e) });

@@ -133,6 +133,21 @@ assert.deepEqual(second.results, ["skipped", "skipped"]);
 assert.equal((await api(B, "GET", "/api/recordings")).length, 3);
 assert.equal((await api(B, "GET", "/api/asks")).length, 1, "a second import duplicated 問問看");
 
+// ---- an imported recording that moved on (retranscribed → no longer done) is kept as it is by a re-import
+await api(B, "POST", `/api/recordings/${n2}/retranscribe`, {});
+const third = await importAll();
+assert.deepEqual(third.results, ["skipped", "skipped"]);
+assert.equal((await api(B, "GET", `/api/recordings/${n2}`)).recording.status, "queued", "re-import replaced a retranscribing recording");
+
+// ---- a half-done import: not counted in its folder, and 問問看 never cite it
+const half = await api(B, "POST", "/api/import/recordings", { recording: { import_key: "https://elsewhere#9", title: "half" }, folder_id: bSub.id, size: 1,
+  speakers: [], segments: [], summaries: [], people: {}, voiceprints: [] });
+assert.equal((await api(B, "GET", "/api/folders")).find((f: { id: number }) => f.id === bSub.id).count, 1, "folder count includes an importing row");
+await api(B, "POST", "/api/import/asks", { asks: [{ question: "half?", answer_md: "[[9@00:00]]", sources: [9], created_at: "2026-01-01 00:00:00" }], recordings: { 9: half.recording_id } });
+const hq = await api(B, "GET", `/api/asks/${(await api(B, "GET", "/api/asks")).find((a: { question: string }) => a.question === "half?").id}`);
+assert.equal(hq.answer_md, "", "an ask cites an importing recording");
+assert.deepEqual(typeof hq.sources === "string" ? JSON.parse(hq.sources) : hq.sources, []);
+
 // ---- a broken manifest is refused before anything is written
 const bad = await call(BASE, B, "POST", "/api/import/meta", { manifest: { ...idx.manifest, version: 2 }, folders: [{ id: 99, parent_id: null, name: "Never" }], people: [], settings: {}, vocab: [] });
 assert.equal(bad.status, 400);
