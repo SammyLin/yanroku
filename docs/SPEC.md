@@ -468,3 +468,44 @@ One `acpAsk`: the diffs (all recordings) then the transcripts (sharing a 120k-ch
 
 ### UI
 Settings → 詞彙: a「建議加入」list above the vocab editor; each row = term + 「出現 N 次・M 份錄音・曾被聽成「…」」 with 加入 / 忽略, which act immediately (not part of 儲存). 加入 also appends the term to the open editor without touching other unsaved edits. Empty:「還沒有建議。累積更多錄音後會自動分析。」 Muted line: last scan time or error, then「立即分析」only when something is unscanned and no scan is running (「分析中…」while one is, polled every 5 s).
+
+## Transfer (搬家: export / import) — decided 2026-10-17
+
+Move an account between servers (Yanroku Cloud ⇄ self-host ⇄ self-host) with one zip, in 設定 › 搬家. Off unless the
+Worker has `TRANSFER_ENABLED=1` (`wrangler.jsonc` vars / `.dev.vars`): off → every route below 404s and `GET /api/config`
+reports `transfer: false`, which hides the section.
+
+### Zip (`web/public/zip.js`, `web/public/transfer.js`)
+STORE-only zip with zip64, built and read by the browser (Workers' CPU and 100 MB request limits rule out doing it here):
+`manifest.json` (`format: "yanroku-export"`, `version: 1`, `exported_at`, `source` origin, `export_id`, `voice_model`,
+`counts`), `data.json` (`folders`, `people` with their `voiceprints`, `settings` = stored keys only, `vocab` = decided
+suggestions, `asks`, `recordings` = each one's export detail) and `audio/<old id>.m4a` (play.m4a). Ids are the old
+server's. Exported: `status='done'` recordings outside the trash; unfinished ones come back as `left_out` and are listed.
+`import_key` = `"<source origin>#<old id>"`, kept when an imported recording is exported again.
+
+### Schema (migration 0012)
+`recordings.import_key` (unique per user). Status `importing` = an imported row whose play.m4a isn't complete: hidden
+from `GET /api/recordings` and folder counts, never claimed by a runner, refused by `POST /api/uploads/:rid/complete`.
+
+### Browser API (`web/src/transfer.ts`, pure rules in `transfer-merge.ts`)
+- `GET /api/export` → manifest + folders, people (+ voiceprints), settings, vocab, asks, `recordings: [{id, import_key,
+  size, title}]`, `left_out`. `GET /api/export/recordings/:id` → recording, speakers (with embedding), segments, done
+  summaries (404 unless done and not trashed). Audio: `GET /media/:id`.
+- `POST /api/import/meta` `{manifest, folders, people, settings, vocab}` → `{folders: {old: new}, people: {old: new}}`;
+  400 before any write when the manifest isn't ours / version ≠ 1. Folders merge by (parent, name), people by name,
+  settings only for keys the account hasn't set (`me` mapped, `vocab` union capped at 200), vocab decisions only for
+  new terms.
+- `POST /api/import/recordings` `{recording, speakers, segments, summaries, folder_id, people, voiceprints, size}` →
+  `{skipped: true, recording_id}` when that `import_key` is already done; a leftover `importing` row is removed and
+  redone; otherwise rows go in as `importing` with an R2 multipart upload at `u/<uid>/rec/<rid>/play.m4a` →
+  `{recording_id, part_size}`. Parts: `PUT /api/uploads/:rid/:part`.
+- `POST /api/import/recordings/:rid/complete` `{parts}` → `play_key` set, `status='done'` (never queued: no runner, no
+  Cloud minutes).
+- `POST /api/import/asks` `{asks, recordings: {old: new}}` → done asks with `sources` and `[[id@mm:ss]]` citations
+  remapped (unmapped ids dropped); an ask with the same question and time is skipped.
+- Ids from the client are only used when they are the caller's (folders, people, recordings).
+
+### Tests
+`node test/transfer.test.ts` (switch + merge rules), `node test/zip.test.ts`, `sh test/transfer.sh` (routes end to end
+on a Worker with and without the switch, then `public/transfer.js` export → import → interrupted → re-run), and the new
+routes' cases in `test/isolation.ts`.

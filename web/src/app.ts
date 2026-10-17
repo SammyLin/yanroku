@@ -6,6 +6,8 @@ import {
 import { notify, pushEnabled } from "./push";
 import { listRunners, runnerRoutes } from "./runner";
 import { STT_LANGS, getSettings, parseSettings, putSettings } from "./settings";
+import { transferRoutes } from "./transfer";
+import { transferEnabled } from "./transfer-merge";
 import { enrol, isDefaultName, rematch, upsertPerson } from "./voice";
 import { vocabRoutes } from "./vocab";
 
@@ -57,7 +59,7 @@ async function folderExists(env: Env, fid: unknown, uid: number) {
 
 const folderRow = (env: Env, fid: number, uid: number) =>
   first(env.DB.prepare(`SELECT f.id, f.parent_id, f.name,
-    (SELECT count(*) FROM recordings r WHERE r.folder_id=f.id AND r.deleted_at IS NULL) AS count FROM folders f WHERE f.id=? AND f.user_id=?`).bind(fid, uid), "folder not found");
+    (SELECT count(*) FROM recordings r WHERE r.folder_id=f.id AND r.deleted_at IS NULL AND r.status != 'importing') AS count FROM folders f WHERE f.id=? AND f.user_id=?`).bind(fid, uid), "folder not found");
 
 // D1 raises UNIQUE violations as plain errors.
 async function uniqueName<T>(p: Promise<T>): Promise<T> {
@@ -78,7 +80,7 @@ export const routes: Route[] = [
 
   ["GET", /^\/api\/recordings$/, async (_req, env, _p, url, _c, uid) => {
     const q = url.searchParams;
-    const where = [`r.user_id=?`, `r.deleted_at IS ${truthy(q.get("trash")) ? "NOT NULL" : "NULL"}`];
+    const where = [`r.user_id=?`, `r.status != 'importing'`, `r.deleted_at IS ${truthy(q.get("trash")) ? "NOT NULL" : "NULL"}`];
     const args: unknown[] = [uid];
     const s = q.get("q");
     if (s) {
@@ -278,7 +280,7 @@ export const routes: Route[] = [
   // ---- folders
   ["GET", /^\/api\/folders$/, async (_req, env, _p, _u, _c, uid) => {
     const { results } = await env.DB.prepare(`SELECT f.id, f.parent_id, f.name,
-      (SELECT count(*) FROM recordings r WHERE r.folder_id=f.id AND r.deleted_at IS NULL) AS count FROM folders f WHERE f.user_id=? ORDER BY f.name, f.id`).bind(uid).all();
+      (SELECT count(*) FROM recordings r WHERE r.folder_id=f.id AND r.deleted_at IS NULL AND r.status != 'importing') AS count FROM folders f WHERE f.user_id=? ORDER BY f.name, f.id`).bind(uid).all();
     return results;
   }],
 
@@ -350,6 +352,7 @@ export const routes: Route[] = [
   ["POST", /^\/api\/uploads\/(\d+)\/complete$/, async (req, env, [rid], _u, _c, uid) => {
     const parts = parseParts(await readJSON(req));
     const rec = await uploading(env, id(rid), uid);
+    if (rec.status !== "uploading") throw new HttpError(409, "an imported recording completes through /api/import"); // never queued: no runner, no charge
     const obj = await env.AUDIO.resumeMultipartUpload(rec.source_key, rec.upload_id).complete(parts);
     await env.DB.prepare(`UPDATE recordings SET status='queued', upload_id=NULL, size=? WHERE id=? AND user_id=?`).bind(obj.size, id(rid), uid).run();
     return getRecording(env, id(rid), uid);
@@ -397,6 +400,7 @@ export const routes: Route[] = [
     return { ok: true };
   }],
 
+  ...transferRoutes,
   ...askRoutes,
   ...vocabRoutes,
   ...runnerRoutes,
@@ -405,7 +409,8 @@ export const routes: Route[] = [
 async function uploading(env: Env, rid: number, uid: number) {
   const rec = await first<{ status: string; source_key: string; upload_id: string }>(
     env.DB.prepare(`SELECT status, source_key, upload_id FROM recordings WHERE id=? AND user_id=?`).bind(rid, uid));
-  if (rec.status !== "uploading" || !rec.upload_id) throw new HttpError(409, "upload already completed");
+  // 'importing' = an imported recording's play.m4a (transfer.ts): parts and abort go through the same routes
+  if (!["uploading", "importing"].includes(rec.status) || !rec.upload_id) throw new HttpError(409, "upload already completed");
   return rec;
 }
 
@@ -439,7 +444,7 @@ export function createWorker<E extends Env = Env>(opts: WorkerOptions<E>): Expor
       const method = req.method === "HEAD" ? "GET" : req.method;
       // public: tells the clients how to sign in and which UI extensions to load
       if (url.pathname === "/api/config" && method === "GET")
-        return Response.json({ auth_mode: "access", app_name: "Yanroku", extensions: [], ...opts.config?.(env) });
+        return Response.json({ auth_mode: "access", app_name: "Yanroku", extensions: [], transfer: transferEnabled(env), ...opts.config?.(env) });
       const who = await opts.identify(req, env, url.pathname, ctx);
       if (who instanceof Response) return who;
       // CSRF: a session cookie may ride along on cross-site requests; the runner sends no Sec-Fetch-* headers

@@ -9,6 +9,7 @@ export interface Env {
   VAPID_PUBLIC_KEY?: string; // Web Push, see push.ts
   VAPID_PRIVATE_KEY?: string;
   VAPID_SUBJECT?: string;
+  TRANSFER_ENABLED?: string; // "1" = export / import on (transfer.ts)
 }
 
 // uid = the caller's users.id (user routes); runner routes get 0 and act on each job row's user_id.

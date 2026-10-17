@@ -10,7 +10,7 @@ sql() { npx wrangler d1 execute noteapp --local --persist-to "$dir" "$@" >/dev/n
 q() { npx wrangler d1 execute noteapp --local --persist-to "$dir" --json --command "$1" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.stringify(JSON.parse(s)[0].results)))'; }
 
 # schema as it is live on self-host (0001-0010) + one or more rows in every table, in one execute
-{ for f in migrations/00*.sql; do case "$f" in *0011_*) ;; *) cat "$f"; echo ;; esac; done; echo "
+{ for f in migrations/00*.sql; do case "$f" in *0011_*) break ;; esac; cat "$f"; echo; done; echo "
 INSERT INTO folders(id, parent_id, name) VALUES(1, NULL, 'Work'), (2, 1, 'Sub');
 INSERT INTO recordings(id, title, filename, status, folder_id, source_key, play_key) VALUES
   (1, 'one', 'one.m4a', 'done', 1, NULL, 'rec/1/play.m4a'), (2, 'two', 'two.m4a', 'queued', 2, 'rec/2/source.m4a', NULL);

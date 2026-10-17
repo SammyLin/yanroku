@@ -335,6 +335,8 @@ input[type=radio]{accent-color:var(--sig);width:1.05em;height:1.05em;margin:0}
 .set-body{overflow:auto;padding:20px 20px 8px;display:grid;gap:18px}
 .set-body h2{margin:0}
 .set-sec{display:grid;gap:10px}
+.xfer-acts{display:flex;gap:8px;flex-wrap:wrap}
+.xfer-list{margin:0;padding-left:1.2em;font-size:.85rem;color:var(--mute);display:grid;gap:2px}
 .set-sec h3{margin:0;font-size:.72rem;letter-spacing:.14em;color:var(--faint);font-weight:600;padding-bottom:4px;border-bottom:1px solid var(--line2)}
 .fld{display:grid;gap:4px}.fld .lbl{margin:0}
 .fld select{justify-self:start;max-width:100%}
@@ -599,6 +601,13 @@ button.linkbtn:hover{background:none;color:var(--ink)}
         <div class="chk"><label class="chk" id="pushRow"><input type="checkbox" id="pushOn"> <span data-i18n>完成時通知我</span></label>
           <button type="button" class="ghost" id="pushTest" style="margin-left:auto;font-size:.85rem;padding:.25em .7em" hidden data-i18n>送測試通知</button></div>
         <p class="hint" id="pushHint" hidden data-i18n>iPhone 需先「加入主畫面」再從主畫面開啟才能收到通知</p>
+      </section>
+      <section class="set-sec" id="xferSec" hidden><h3 data-i18n>搬家</h3>
+        <p class="hint" data-i18n>搬到另一台 Yanroku 伺服器（Cloud ⇄ 自架）：匯出成一個 zip，再到新伺服器匯入。匯入會加在現有資料旁邊，已匯入過的會略過。</p>
+        <div class="xfer-acts"><button type="button" id="xferExport" data-i18n>匯出全部資料</button><button type="button" id="xferImport" data-i18n>匯入…</button>
+          <input type="file" id="xferFile" accept=".zip,application/zip" hidden></div>
+        <p class="hint" id="xferStatus" role="status" hidden></p>
+        <ul class="xfer-list" id="xferList" hidden></ul>
       </section>
       <p class="hint" data-i18n>設定只影響之後的新工作；既有錄音可重新轉錄或重新產生摘要。</p>
     </div>
@@ -1755,7 +1764,7 @@ function renderMeSel(v){
 async function openSettings(){
   await Promise.all([loadSettings(),loadPersons()]);
   setMsg('');$('#setBar').hidden=true;
-  fillSettings();renderPersons();renderPush();SUG=null;renderSug();loadSug();
+  fillSettings();renderPersons();renderPush();renderXfer();SUG=null;renderSug();loadSug();
   setDlg.showModal();setDlg.querySelector('.set-body').scrollTop=0;
 }
 function closeSettings(){if(setDirty())$('#setBar').hidden=false;else setDlg.close()}
@@ -1960,6 +1969,56 @@ const yanroku=Object.assign(window.yanroku,{
   onUnauthorized(fn){unauthorized=fn},
   h,$,showAlert,toast,
 });
+// ---- 設定 › 搬家: export / import (public/transfer.js + zip.js, loaded on first use; off unless /api/config transfer)
+let xferBusy=false,xferFileSel=null;
+addEventListener('beforeunload',e=>{if(xferBusy){e.preventDefault();e.returnValue=''}});
+function renderXfer(){$('#xferSec').hidden=!yanroku.config?.transfer;if(!xferBusy)$('#xferExport').disabled=$('#xferImport').disabled=false}
+async function xferLib(){if(!window.YanrokuTransfer){await loadJs('/zip.js');await loadJs('/transfer.js')}return window.YanrokuTransfer}
+async function rawFetch(path,init={}){
+  const r=await fetch(path,{...init,headers:{...await authHeaders(),...init.headers}});
+  if(!r.ok)throw httpErr(r.status,await r.text());
+  return r;
+}
+const xferClient={
+  api:(path,opt)=>api(path,opt),
+  media:async id=>(await rawFetch(`/media/${id}`)).blob(),
+  upload:async(rid,n,blob)=>(await rawFetch(`/api/uploads/${rid}/${n}`,{method:'PUT',body:blob})).json(),
+};
+function xferShow(msg,items=[]){
+  const st=$('#xferStatus'),ul=$('#xferList');st.hidden=!msg;st.textContent=msg||'';
+  ul.replaceChildren(...items.map(x=>h('li',{text:x})));ul.hidden=!items.length;
+}
+async function xferRun(fn){
+  xferBusy=true;$('#xferExport').disabled=$('#xferImport').disabled=true;
+  try{await fn()}catch(e){xferShow(e.message||String(e))}finally{xferBusy=false;$('#xferExport').disabled=$('#xferImport').disabled=false}
+}
+$('#xferExport').onclick=()=>xferRun(async()=>{
+  const T=await xferLib();
+  xferShow(tr('正在準備匯出…'));
+  const {blob,skipped}=await T.exportAll(xferClient,p=>xferShow(tr('正在匯出 {done}/{total} 份錄音（{mb} MB）',{done:p.done,total:p.total,mb:(p.bytes/1048576).toFixed(1)})));
+  const day=new Date().toLocaleDateString('sv').replaceAll('-',''); // local date, YYYYMMDD
+  const a=h('a',{href:URL.createObjectURL(blob),download:`yanroku-export-${day}.zip`});document.body.append(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),60000);
+  xferShow(tr('已匯出（{mb} MB）',{mb:(blob.size/1048576).toFixed(1)}),skipped.map(r=>tr('未匯出（尚未處理完成）：{title}',{title:r.title})));
+});
+$('#xferImport').onclick=()=>{$('#xferFile').value='';$('#xferFile').click()};
+$('#xferFile').onchange=()=>{const f=$('#xferFile').files[0];if(f){xferFileSel=f;xferImport(f)}};
+function xferImport(file)
+{
+  return xferRun(async()=>{
+    const T=await xferLib();
+    const {manifest}=await T.inspect(file);
+    const c=manifest.counts||{};
+    if(!confirm(tr('共 {n} 份錄音、{p} 位人物，已存在的會略過。開始匯入？',{n:c.recordings??0,p:c.people??0})))return xferShow('');
+    const res=await T.importZip(file,xferClient,p=>xferShow(tr('正在匯入 {done}/{total}：{title}',{done:p.done,total:p.total,title:p.title})));
+    xferShow(tr('完成：匯入 {a}、略過 {s}、失敗 {f}',{a:res.imported.length,s:res.skipped.length,f:res.failed.length}),
+      res.failed.map(x=>tr('失敗：{title}（{error}）',{title:x.title,error:x.error})));
+    if(res.failed.length){const again=h('button',{type:'button',class:'ghost',text:tr('重試失敗的項目'),onclick:()=>xferImport(xferFileSel)});$('#xferList').append(h('li',{},again))}
+    loadFolders();loadList();
+    // the dialog is still open: show the merged settings and people, so 儲存 doesn't write the old form back over them
+    await Promise.all([loadSettings(),loadPersons()]);fillSettings();renderPersons();
+  });
+}
 async function authHeaders(){
   const t=tokenProvider&&await Promise.resolve().then(tokenProvider).catch(()=>null);
   return t?{Authorization:'Bearer '+t}:{};

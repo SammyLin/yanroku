@@ -6,7 +6,7 @@ cd "$(dirname "$0")/.."
 port=${PORT:-8811}
 dir=$(mktemp -d "${TMPDIR:-/tmp}/yanroku-isolation.XXXXXX")
 npx wrangler d1 migrations apply noteapp --local --persist-to "$dir" >/dev/null
-npx wrangler dev test/fake-identify.ts --port "$port" --inspector-port "$((port + 1))" --local --persist-to "$dir" >"$dir/dev.log" 2>&1 &
+npx wrangler dev test/fake-identify.ts --var TRANSFER_ENABLED:1 --port "$port" --inspector-port "$((port + 1))" --local --persist-to "$dir" >"$dir/dev.log" 2>&1 &
 pid=$!
 cleanup() { kill "$pid" 2>/dev/null || true; sleep 1; rm -rf "$dir"; }
 trap cleanup EXIT INT TERM
