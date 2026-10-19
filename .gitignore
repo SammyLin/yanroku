@@ -2,6 +2,7 @@ runner/data/
 runner/lib/
 runner/noteapp
 runner/tally
+runner/yanroku
 runner/.env
 web/node_modules/
 web/.wrangler/

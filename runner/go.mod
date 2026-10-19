@@ -1,4 +1,4 @@
-module tally
+module yanroku
 
 go 1.26.2
 

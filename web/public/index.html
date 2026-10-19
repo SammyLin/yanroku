@@ -633,11 +633,11 @@ const BUSY = s => !['done','error'].includes(s);
 const S = {view:'recent',folder:null,q:'',list:[],folders:[],id:null,tab:'transcript',d:null,showRaw:false,
   meta:null,active:-1,starts:[],segEls:[],player:null,playerFor:null,userScrollAt:0,spkSeg:null};
 // keys were noteapp.* before the rename; read them once so saved state survives
-const ls=k=>localStorage.getItem('tally.'+k)??localStorage.getItem('noteapp.'+k);
+const ls=k=>localStorage.getItem('yanroku.'+k)??localStorage.getItem('tally.'+k)??localStorage.getItem('noteapp.'+k);
 try{const v=JSON.parse(ls('view'));if(v&&v.view){S.view=v.view;S.folder=v.folder??null}}catch{}
 let expanded=new Set();
 try{expanded=new Set(JSON.parse(ls('expanded')||'[]'))}catch{}
-const saveExpanded=()=>{try{localStorage.setItem('tally.expanded',JSON.stringify([...expanded]))}catch{}};
+const saveExpanded=()=>{try{localStorage.setItem('yanroku.expanded',JSON.stringify([...expanded]))}catch{}};
 let listTimer, detailTimer, qTimer, uploading=0, rec=null;
 const DND=matchMedia('(pointer:fine)').matches;
 const narrow=matchMedia('(max-width:1099px)');
@@ -789,7 +789,7 @@ function setView(view,folder=null){
 function applyView(view,folder=null){
   S.view=view;S.folder=folder;
   document.querySelector('.search').hidden=false;
-  try{localStorage.setItem('tally.view',JSON.stringify({view,folder}))}catch{}
+  try{localStorage.setItem('yanroku.view',JSON.stringify({view,folder}))}catch{}
   if(view==='folder'){for(const f of pathOf(folder).slice(0,-1))expanded.add(f.id);saveExpanded()}
   renderNav();renderCrumbs();loadList();updateTitle();
 }
@@ -809,7 +809,7 @@ function dropTarget(el,on){
     if(r&&on.rec)on.rec(+r);else if(f&&on.folder)on.folder(+f);
   });
 }
-const T_REC='application/x-tally-rec',T_DIR='application/x-tally-folder';
+const T_REC='application/x-yanroku-rec',T_DIR='application/x-yanroku-folder';
 function renderNav(){
   const nv=(view,label,ic,drop)=>{
     const b=h('a',{href:'#/'+vpath(view),class:'nv','aria-current':String(S.view===view),onclick:e=>{e.preventDefault();setView(view)}},icon(ic),h('span',{class:'nm',text:label}));
@@ -1417,7 +1417,7 @@ const CAP_INTROS={
 };
 const CAP_DEF={summary:true,transcript:true,ts:true,raw:false,intro:'qa',custom:''};
 function capOpts(){let o={};try{o=JSON.parse(ls('cap')||'{}')}catch{}return {...CAP_DEF,...o}}
-function saveCapOpts(o){try{localStorage.setItem('tally.cap',JSON.stringify(o))}catch{}}
+function saveCapOpts(o){try{localStorage.setItem('yanroku.cap',JSON.stringify(o))}catch{}}
 const joinTxt=(a,b)=>!a?b:/[A-Za-z0-9]$/.test(a)&&/^[A-Za-z0-9]/.test(b)?a+' '+b:a+b;
 
 // range: [i,j] segment indexes for a selection; summaries are left out then.

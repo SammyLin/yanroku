@@ -15,7 +15,7 @@ import (
 // embedding, or every speaker if recompute (SPEC Speaker ID v2). One failed recording is logged and skipped.
 func backfillVoiceprints(ctx context.Context, cfg Config, recompute bool) error {
 	if _, err := os.Stat(voiceModelPath(cfg)); err != nil {
-		return errors.New("voice model missing; run `tally models`")
+		return errors.New("voice model missing; run `yanroku models`")
 	}
 	c := newClient(cfg)
 	var recs []struct {

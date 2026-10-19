@@ -1,6 +1,6 @@
 # Build spec (contract between files)
 
-Go 1.26, single binary, `package main` at repo root, module `tally` (app renamed from noteapp to Tally). Go-ified from a Python prototype (kept at `$SCRATCH/py-ref/` during initial build for porting prompts and ACP details).
+Go 1.26, single binary, `package main` at repo root, module `yanroku` (app renamed from noteapp to Tally). Go-ified from a Python prototype (kept at `$SCRATCH/py-ref/` during initial build for porting prompts and ACP details).
 
 Deps (keep to these):
 - `modernc.org/sqlite` (pure Go, driver name `sqlite`)
@@ -14,7 +14,7 @@ External tools: `ffmpeg`, `whisper-cli` (brew whisper-cpp, Metal GPU).
 | File | Owns |
 |---|---|
 | `config.go` | DONE, do not edit: `Config`, `loadConfig()`, `loadDotEnv(path)`. |
-| `main.go` | CLI (calls `loadDotEnv(".env")` then `loadConfig()`): `tally` / `tally serve [-addr 127.0.0.1:8000]`, `tally ingest <folder>`, `tally models` (download models). |
+| `main.go` | CLI (calls `loadDotEnv(".env")` then `loadConfig()`): `yanroku` / `yanroku serve [-addr 127.0.0.1:8000]`, `yanroku ingest <folder>`, `yanroku models` (download models). |
 | `db.go` | Open SQLite (`DATA_DIR/noteapp.db`, WAL, foreign_keys, busy_timeout 5000), schema init, `*sql.DB` shared (safe across goroutines; `SetMaxOpenConns(1)` acceptable). |
 | `api.go` | HTTP handlers, `//go:embed static` UI, `/media/{id}` via `http.ServeFile` (Range). |
 | `worker.go` | Single worker goroutine: queue polling, startup reset, runs `process` / `summarize`. |
@@ -73,7 +73,7 @@ func openDB(dataDir string) (*sql.DB, error)
 ```
 data/
   noteapp.db
-  models/                 whisper ggml + sherpa-onnx diarization models (tally models downloads them)
+  models/                 whisper ggml + sherpa-onnx diarization models (yanroku models downloads them)
   rec/<id>/source.<ext>   original upload
   rec/<id>/audio.wav      16 kHz mono s16 PCM for STT/diarization
   rec/<id>/play.m4a       AAC 64k mono for browser playback
@@ -171,7 +171,7 @@ All JSON. Static: `GET /` → `static/index.html`; `GET /media/{id}` → `play.m
 
 Worker (`worker.go`): one goroutine started on serve. Loop: pick oldest `recordings.status='queued' AND deleted_at IS NULL` → `process`; else oldest `summaries.status='queued'` → run summarize; else sleep 2 s. On startup, reset recordings in converting/transcribing/cleaning → queued and summaries running → queued. ponytail: single worker; STT saturates GPU anyway.
 
-CLI: `tally ingest <folder>` — recursively register audio/video files (by extension) not already ingested (match on original filename + size), copy into data/rec, status queued. `noteapp serve [-addr 127.0.0.1:8000]` (default when no args). `tally models` downloads missing models into data/models (whisper ggml-large-v3-turbo from huggingface ggerganov/whisper.cpp, sherpa-onnx segmentation + embedding models from k2-fsa GitHub releases).
+CLI: `yanroku ingest <folder>` — recursively register audio/video files (by extension) not already ingested (match on original filename + size), copy into data/rec, status queued. `noteapp serve [-addr 127.0.0.1:8000]` (default when no args). `yanroku models` downloads missing models into data/models (whisper ggml-large-v3-turbo from huggingface ggerganov/whisper.cpp, sherpa-onnx segmentation + embedding models from k2-fsa GitHub releases).
 
 ## UI (`static/index.html`)
 
@@ -305,7 +305,7 @@ Runner still runs cleanup + title via local ACP between `transcript` and `done`,
 
 ### runner/ (Go)
 - Config (`runner/.env`): `API_BASE=https://records.3mi.ai`（維護者的值；自架時必填自己的網址）, `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET` (sent as `CF-Access-Client-Id` / `CF-Access-Client-Secret` headers), `RUNNER_NAME` (default hostname), plus the existing STT/diarize/ACP vars. `DATA_DIR` holds models and a work dir (`work/<id>/`, deleted after each job).
-- Commands: `tally run` (default: loop claim → process → sleep 10 s when idle; graceful on SIGINT/SIGTERM: the current job gets 5 s, then is handed back with `POST /api/runner/{recordings|summaries}/{id}/defer` `{seconds:0}` so another runner picks it up at once; a crash is covered by the 10 min lease), `tally ingest <dir>` (upload via the multipart API; subfolder path → folder tree via folders API, reuse existing; skip files already uploaded by filename+size via `GET /api/recordings?filename=&size=`), `tally models`.
+- Commands: `yanroku run` (default: loop claim → process → sleep 10 s when idle; graceful on SIGINT/SIGTERM: the current job gets 5 s, then is handed back with `POST /api/runner/{recordings|summaries}/{id}/defer` `{seconds:0}` so another runner picks it up at once; a crash is covered by the 10 min lease), `yanroku ingest <dir>` (upload via the multipart API; subfolder path → folder tree via folders API, reuse existing; skip files already uploaded by filename+size via `GET /api/recordings?filename=&size=`), `yanroku models`.
 - Pipeline logic (ffmpeg, STT, diarize, split, cleanup batching/parsing, prompts, title) is reused; only DB access is replaced by HTTP calls.
 
 ### Web Push (decided 2026-10-07)
@@ -339,7 +339,7 @@ Matching (Worker, in `POST /api/runner/recordings/{id}/transcript` and after bac
 
 Runner:
 - After diarization, compute one embedding per speaker: mean of embeddings over up to ~60 s of that speaker's longest segments (reuse diarize.go's embedding helper), L2-normalized. Send as `speakers[].embedding` in the transcript POST. Single-speaker fallback still gets an embedding.
-- New command `tally voiceprints` (backfill): for each done recording whose speakers lack embeddings, download `/api/runner/recordings/{id}/source` (serves play.m4a after the original is deleted), ffmpeg → 16k wav, compute per-speaker embeddings from its segments' time ranges, `POST /api/runner/recordings/{id}/speaker-embeddings {speakers:[{id, embedding}]}` (runner/Access auth, no lease). Worker stores them, enrols speakers whose display_name is not default (links/creates people by name), then re-runs matching for all recordings' unconfirmed speakers.
+- New command `yanroku voiceprints` (backfill): for each done recording whose speakers lack embeddings, download `/api/runner/recordings/{id}/source` (serves play.m4a after the original is deleted), ffmpeg → 16k wav, compute per-speaker embeddings from its segments' time ranges, `POST /api/runner/recordings/{id}/speaker-embeddings {speakers:[{id, embedding}]}` (runner/Access auth, no lease). Worker stores them, enrols speakers whose display_name is not default (links/creates people by name), then re-runs matching for all recordings' unconfirmed speakers.
 
 UI:
 - Auto-labelled speaker shows a small「自動」tag next to the name (title: 依聲紋自動辨識，點擊可更正). Popover unchanged; saving confirms.
@@ -347,13 +347,13 @@ UI:
 
 ## Speaker ID v2 — decided 2026-10-05, SUPERSEDES the Voiceprints model/threshold/runner parts above
 
-Why: campplus scores the same person across recordings lower than two different people (Sammy rec 3 vs rec 8: 0.45), and sherpa over-segments (rec 8: 2 people → 55+ clusters), so prints come from fragments. Evidence: `/private/tmp/claude-501/tally-spk/REPORT.md`. Binary is `tally` (`runner/main.go`); commands below are `tally …` run from `runner/`.
+Why: campplus scores the same person across recordings lower than two different people (Sammy rec 3 vs rec 8: 0.45), and sherpa over-segments (rec 8: 2 people → 55+ clusters), so prints come from fragments. Evidence: `/private/tmp/claude-501/tally-spk/REPORT.md`. Binary is `yanroku` (`runner/main.go`); commands below are `tally …` run from `runner/`.
 
 ### Models and model id
 - Diarization keeps `3dspeaker_speech_campplus_sv_zh-cn_16k-common.onnx` (fast, ~1 s per audio-minute). Model id of embeddings made with it: `campplus-zh-cn` (legacy).
 - Voiceprints (per-speaker embeddings, backfill) switch to `3dspeaker_speech_eres2net_large_sv_zh-cn_3dspeaker_16k.onnx`, 512 dims, ~111 MB, ~4.4 s per audio-minute. URL: `https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/3dspeaker_speech_eres2net_large_sv_zh-cn_3dspeaker_16k.onnx` (sic "recongition"). Model id: `eres2net-large-zh-cn`.
-- Runner: `voiceModelURL` + `voiceModelPath(cfg)` (`DATA_DIR/models/<basename>`) next to `embModelURL`/`embModelPath`; `tally models` also fetches it. `speakerEmbeddings` and `tally voiceprints` use the voice model; `diarize`, `mergeTurns`, `splitCollapsed` keep campplus. Voice model missing → no embeddings (warn), job still succeeds.
-- Worker constant `VOICE_MODEL = "eres2net-large-zh-cn"`. Embeddings are compared only when both have `emb_model = VOICE_MODEL`; anything else is stored but never matched, enrolled into matching, or suggested. An embedding posted without `emb_model` is `campplus-zh-cn` (the old home-macmini runner keeps working; its speakers simply get no auto labels until `tally voiceprints` re-embeds them).
+- Runner: `voiceModelURL` + `voiceModelPath(cfg)` (`DATA_DIR/models/<basename>`) next to `embModelURL`/`embModelPath`; `yanroku models` also fetches it. `speakerEmbeddings` and `yanroku voiceprints` use the voice model; `diarize`, `mergeTurns`, `splitCollapsed` keep campplus. Voice model missing → no embeddings (warn), job still succeeds.
+- Worker constant `VOICE_MODEL = "eres2net-large-zh-cn"`. Embeddings are compared only when both have `emb_model = VOICE_MODEL`; anything else is stored but never matched, enrolled into matching, or suggested. An embedding posted without `emb_model` is `campplus-zh-cn` (the old home-macmini runner keeps working; its speakers simply get no auto labels until `yanroku voiceprints` re-embeds them).
 
 ### Runner → Worker
 - `POST /api/runner/recordings/{id}/transcript`: `speakers[]` gains `emb_model` (string, required when `embedding` is set by a new runner). `embedding` = ONE L2-normalized mean per speaker: per-span embeddings (each span L2-normalized) averaged over **all** of the speaker's clean spans (`voiceSpans`: trim 0.25 s / 0.5 s, ≥ 1 s), longest first, capped at `voiceprintSec = 600` (bounds time on very long files), then L2-normalized. No per-segment lists.
@@ -386,10 +386,10 @@ Multiple prints per person = one per enrolled speaker (unchanged, `speaker_id UN
 - 「自動」tag for auto=1 unchanged.
 
 ### Backfill
-- `tally voiceprints`: for done recordings, re-embed non-`custom` speakers whose `emb_model` ≠ `eres2net-large-zh-cn` (incl. none) using their current segments; POST with `emb_model`.
-- `tally voiceprints --recompute`: same, but every non-`custom` speaker of every done recording.
+- `yanroku voiceprints`: for done recordings, re-embed non-`custom` speakers whose `emb_model` ≠ `eres2net-large-zh-cn` (incl. none) using their current segments; POST with `emb_model`.
+- `yanroku voiceprints --recompute`: same, but every non-`custom` speaker of every done recording.
 - Worker (speaker-embeddings, unchanged flow): store, re-enrol the recording's confirmed speakers (auto=0, non-default name) with the new embedding — names untouched — then `rematch` all. Old-model prints stay but are ignored. Never renames confirmed speakers or deletes data.
-- Rollout: migrate D1 + deploy Worker → build/restart this Mac's runner → `tally models` → `tally voiceprints --recompute`. Re-run `tally voiceprints` after home-macmini processes anything until it is updated.
+- Rollout: migrate D1 + deploy Worker → build/restart this Mac's runner → `yanroku models` → `yanroku voiceprints --recompute`. Re-run `yanroku voiceprints` after home-macmini processes anything until it is updated.
 
 ### Diarization (runner/diarize.go)
 - Keep sherpa FastClustering threshold 0.5, campplus.

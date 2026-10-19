@@ -1,18 +1,21 @@
 #!/bin/sh
 # Installs (or reinstalls) this runner as a launchd agent for the current user, using this directory.
-# Run after building ./tally (see docs/SETUP.md). Also removes the pre-rename ai.3mi.noteapp-runner agent.
+# Run after building ./yanroku (see docs/SETUP.md). Also removes the pre-rename ai.3mi.noteapp-runner and
+# ai.3mi.tally-runner agents. YANROKU_DIR=/path installs a runner copied elsewhere (deploy.sh uses this).
 set -eu
-dir=$(cd "$(dirname "$0")" && pwd)
-label=ai.3mi.tally-runner
+dir=$(cd "${YANROKU_DIR:-$(dirname "$0")}" && pwd)
+label=ai.3mi.yanroku-runner
 agents="$HOME/Library/LaunchAgents"
 plist="$agents/$label.plist"
 dom="gui/$(id -u)"
 
-[ -x "$dir/tally" ] || { echo "build ./tally first (docs/SETUP.md step 3)" >&2; exit 1; }
+[ -x "$dir/yanroku" ] || { echo "build ./yanroku first (docs/SETUP.md step 3)" >&2; exit 1; }
 [ -f "$dir/.env" ] || { echo "missing $dir/.env (copy .env.example)" >&2; exit 1; }
 
-launchctl bootout "$dom/ai.3mi.noteapp-runner" 2>/dev/null || true
-rm -f "$agents/ai.3mi.noteapp-runner.plist"
+for prev in ai.3mi.noteapp-runner ai.3mi.tally-runner; do
+  launchctl bootout "$dom/$prev" 2>/dev/null || true
+  rm -f "$agents/$prev.plist"
+done
 launchctl bootout "$dom/$label" 2>/dev/null || true
 
 mkdir -p "$agents" "$dir/data/logs"
@@ -24,7 +27,7 @@ cat > "$plist" <<EOF
   <key>Label</key><string>$label</string>
   <key>ProgramArguments</key>
   <array>
-    <string>$dir/tally</string>
+    <string>$dir/yanroku</string>
     <string>run</string>
   </array>
   <key>WorkingDirectory</key><string>$dir</string>

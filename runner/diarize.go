@@ -53,7 +53,7 @@ var onnxThreads = func() int {
 }()
 
 var warnNoModels = sync.OnceFunc(func() {
-	slog.Warn("diarization models missing, using a single speaker; run `tally models`")
+	slog.Warn("diarization models missing, using a single speaker; run `yanroku models`")
 })
 
 // diarize expects a 16 kHz mono wav (audio.wav from the pipeline).
@@ -499,7 +499,7 @@ const voiceprintSec = 600.0 // audio per speaker that goes into its voiceprint (
 // voice model is missing.
 func speakerEmbeddings[K comparable](ctx context.Context, cfg Config, wavPath string, segs []Segment, spk []K) (map[K][]float32, error) {
 	if _, err := os.Stat(voiceModelPath(cfg)); err != nil {
-		slog.Warn("voice model missing, no speaker embeddings; run `tally models`")
+		slog.Warn("voice model missing, no speaker embeddings; run `yanroku models`")
 		return nil, nil
 	}
 	ex := sherpa.NewSpeakerEmbeddingExtractor(&sherpa.SpeakerEmbeddingExtractorConfig{Model: voiceModelPath(cfg), NumThreads: onnxThreads})

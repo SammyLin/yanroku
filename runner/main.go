@@ -60,7 +60,7 @@ func main() {
 		rev, at := buildVersion()
 		fmt.Println(rev, at)
 	default:
-		err = errors.New("usage: tally [run] | tally ingest <folder> | tally voiceprints [--recompute] | tally models | tally version")
+		err = errors.New("usage: yanroku [run] | yanroku ingest <folder> | yanroku voiceprints [--recompute] | yanroku models | yanroku version")
 	}
 	if err != nil {
 		fatal(err)
@@ -69,7 +69,7 @@ func main() {
 
 func fatal(err error) {
 	reportSentry("fatal: "+err.Error(), nil) // synchronous: the process exits next
-	fmt.Fprintln(os.Stderr, "tally:", err)
+	fmt.Fprintln(os.Stderr, "yanroku:", err)
 	os.Exit(1)
 }
 

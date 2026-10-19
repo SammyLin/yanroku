@@ -34,7 +34,7 @@ Plaud-style voice recorders and note apps usually keep your meetings on the vend
 
 | | |
 |---|---|
-| **Record or import** | Record in the browser (phone too), or drag in many audio/video files at once. Large files upload in parallel parts with retries; `tally ingest <folder>` batch-uploads from the Mac |
+| **Record or import** | Record in the browser (phone too), or drag in many audio/video files at once. Large files upload in parallel parts with retries; `yanroku ingest <folder>` batch-uploads from the Mac |
 | **Transcripts with speakers** | `whisper.cpp` or Groq Whisper for the text, `sherpa-onnx` for who said what. An AI pass fixes punctuation and obvious recognition errors |
 | **Synced playback** | Click any line to play from there; the seek bar shows who speaks when |
 | **Voiceprints** | Name a speaker once, for one line or all of them; the same person is labelled automatically in later recordings, or suggested ("可能是 X？") when the match is less certain |
@@ -97,7 +97,7 @@ brew install go ffmpeg whisper-cpp node
 npm i -g @agentclientprotocol/claude-agent-acp && claude login
 cd ../runner && cp .env.example .env   # API_BASE + this Mac's Access service token
 ./deploy.sh                            # build, download models (~1.5 GB), restart if installed
-./tally run                            # try it in the foreground
+./yanroku run                            # try it in the foreground
 sh install-launchd.sh                  # then run it as a launchd service
 ```
 
@@ -113,7 +113,7 @@ Local development: see [`CLAUDE.md`](CLAUDE.md).
 | `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` | | This Mac's Cloudflare Access service token |
 | `RUNNER_NAME` | hostname | Shown as the job owner and in runner status |
 
-`API_BASE` is required and has no default. Set it to your own Worker's URL (for example `https://notes.example.com`). If it is missing, empty or not a valid URL, `tally run` exits with an error.
+`API_BASE` is required and has no default. Set it to your own Worker's URL (for example `https://notes.example.com`). If it is missing, empty or not a valid URL, `yanroku run` exits with an error.
 | `STT_PROVIDER` | `local` | `local` = whisper-cli on this Mac; `groq` = Groq Whisper API (audio leaves the Mac) |
 | `WHISPER_MODEL` / `WHISPER_LANG` | `data/models/ggml-large-v3-turbo.bin` / `zh` | Local speech-to-text |
 | `GROQ_API_KEY` / `GROQ_MODEL` | / `whisper-large-v3` | Required for `groq` |

@@ -34,7 +34,7 @@ Plaud 這類錄音筆和筆記 App，錄音通常存在廠商的伺服器上，A
 
 | | |
 |---|---|
-| **錄音或匯入** | 在瀏覽器錄音（手機也行），或一次拖進多個音訊／影片檔。大檔分段平行上傳、失敗自動重試；在 Mac 上可用 `tally ingest <folder>` 批次上傳 |
+| **錄音或匯入** | 在瀏覽器錄音（手機也行），或一次拖進多個音訊／影片檔。大檔分段平行上傳、失敗自動重試；在 Mac 上可用 `yanroku ingest <folder>` 批次上傳 |
 | **分講者逐字稿** | 文字用 `whisper.cpp` 或 Groq Whisper，誰說了什麼用 `sherpa-onnx` 分辨。再由 AI 修正標點和明顯的辨識錯字 |
 | **同步播放** | 點任一句就從那裡播放；進度條顯示每段是誰在說話 |
 | **聲紋** | 講者只要命名一次（單句或全部）；之後的錄音會自動認出同一個人，把握不夠時會提示「可能是 X？」 |
@@ -97,7 +97,7 @@ brew install go ffmpeg whisper-cpp node
 npm i -g @agentclientprotocol/claude-agent-acp && claude login
 cd ../runner && cp .env.example .env   # API_BASE + 這台 Mac 的 Access service token
 ./deploy.sh                            # 編譯、下載模型（約 1.5 GB）、已安裝服務的話重啟
-./tally run                            # 先在前景試跑
+./yanroku run                            # 先在前景試跑
 sh install-launchd.sh                  # 再裝成 launchd 服務
 ```
 
@@ -113,7 +113,7 @@ sh install-launchd.sh                  # 再裝成 launchd 服務
 | `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` | | 這台 Mac 的 Cloudflare Access service token |
 | `RUNNER_NAME` | hostname | 顯示為工作的處理者，也出現在 runner 狀態 |
 
-`API_BASE` 是必填，沒有預設值。請設成你自己的 Worker 網址（例如 `https://notes.example.com`）。沒設、空白或網址格式不對，`tally run` 會直接報錯結束。
+`API_BASE` 是必填，沒有預設值。請設成你自己的 Worker 網址（例如 `https://notes.example.com`）。沒設、空白或網址格式不對，`yanroku run` 會直接報錯結束。
 | `STT_PROVIDER` | `local` | `local` = 這台 Mac 上的 whisper-cli；`groq` = Groq Whisper API（音訊會離開這台 Mac） |
 | `WHISPER_MODEL` / `WHISPER_LANG` | `data/models/ggml-large-v3-turbo.bin` / `zh` | 本機語音轉文字 |
 | `GROQ_API_KEY` / `GROQ_MODEL` | / `whisper-large-v3` | 用 `groq` 時必填 |

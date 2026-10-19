@@ -161,7 +161,7 @@ CF_ACCESS_CLIENT_SECRET=<這台 Mac 的 token Client Secret>
 # RUNNER_NAME=office-mac                   # 選填，預設是 hostname
 ```
 
-`API_BASE` 是必填，沒有預設值。請設成你自己的 Worker 網址（例如 `https://notes.example.com`）。沒設、空白或網址格式不對，`tally run` 會直接報錯結束。
+`API_BASE` 是必填，沒有預設值。請設成你自己的 Worker 網址（例如 `https://notes.example.com`）。沒設、空白或網址格式不對，`yanroku run` 會直接報錯結束。
 
 其他 key（都在 `runner/.env.example`）：
 
@@ -185,38 +185,38 @@ CF_ACCESS_CLIENT_SECRET=<這台 Mac 的 token Client Secret>
 ~/yanroku/runner/deploy.sh
 ```
 
-它會 `git pull --ff-only`、編譯 `tally`、把 sherpa 的 dylib 放到 `lib/`、執行 `./tally models` 下載模型（約 1.5 GB，放在 `data/models`）、有服務就重啟。沒有 launchd 服務時會裝在 `runner/` 目錄本身（可用 `TALLY_DIR=/path` 指定別處）。
+它會 `git pull --ff-only`、編譯 `yanroku`、把 sherpa 的 dylib 放到 `lib/`、執行 `./yanroku models` 下載模型（約 1.5 GB，放在 `data/models`）、有服務就重啟。沒有 launchd 服務時會裝在 `runner/` 目錄本身（可用 `YANROKU_DIR=/path` 指定別處）。
 
 想手動編譯（等同 `CLAUDE.md` 裡的指令）：
 
 ```sh
 cd ~/yanroku/runner
 mkdir -p lib && cp "$(go list -m -f '{{.Dir}}' github.com/k2-fsa/sherpa-onnx-go-macos)"/lib/aarch64-apple-darwin/lib{sherpa-onnx-c-api,onnxruntime}.dylib lib/ && chmod u+w lib/*
-go build -ldflags '-extldflags "-Wl,-rpath,@executable_path/lib"' -o tally .
-./tally models
+go build -ldflags '-extldflags "-Wl,-rpath,@executable_path/lib"' -o yanroku .
+./yanroku models
 ```
 
-`tally` 要跟 `lib/` 放在一起。先前景跑一次確認連得上（Ctrl-C 結束）：
+`yanroku` 要跟 `lib/` 放在一起。先前景跑一次確認連得上（Ctrl-C 結束）：
 
 ```sh
-./tally run
+./yanroku run
 ```
 
-其他子指令：`./tally ingest <folder>`（批次上傳資料夾裡的音訊）、`./tally version`。
+其他子指令：`./yanroku ingest <folder>`（批次上傳資料夾裡的音訊）、`./yanroku version`。
 
 ### 4.4 用 launchd 常駐
 
-在 `runner/` 目錄（已有 `./tally` 和 `.env`）：
+在 `runner/` 目錄（已有 `./yanroku` 和 `.env`）：
 
 ```sh
 sh install-launchd.sh
 ```
 
-它會產生 `~/Library/LaunchAgents/ai.3mi.tally-runner.plist` 並啟動，log 在 `data/logs/runner.log`。常用指令：
+它會產生 `~/Library/LaunchAgents/ai.3mi.yanroku-runner.plist` 並啟動，log 在 `data/logs/runner.log`。常用指令：
 
 ```sh
-launchctl kickstart -k gui/$(id -u)/ai.3mi.tally-runner   # 重啟（改完 .env 後）
-launchctl bootout gui/$(id -u)/ai.3mi.tally-runner        # 停用
+launchctl kickstart -k gui/$(id -u)/ai.3mi.yanroku-runner   # 重啟（改完 .env 後）
+launchctl bootout gui/$(id -u)/ai.3mi.yanroku-runner        # 停用
 tail -f ~/yanroku/runner/data/logs/runner.log
 ```
 
@@ -260,7 +260,7 @@ Codex 的模型寫在 `ACP_AGENT` 的 `-c model=...`，`ACP_MODEL` 對它沒有�
 
 速度參考（同一段短提示）：Claude Code 每次約 3 秒，Codex 約 11 秒。整理一份長逐字稿會分成多次呼叫，Codex 總時間會明顯比較久，但不影響結果。
 
-改完 `.env` 要重啟 runner（`launchctl kickstart -k gui/$(id -u)/ai.3mi.tally-runner`）。
+改完 `.env` 要重啟 runner（`launchctl kickstart -k gui/$(id -u)/ai.3mi.yanroku-runner`）。
 
 **疑難排解**
 
@@ -311,11 +311,11 @@ npx wrangler deploy --env mine                                 # 再部署 Worke
 | API 回 503 `Access not configured` | `ACCESS_TEAM` / `ACCESS_AUD` 沒設，或改完沒 `npx wrangler deploy --env mine` |
 | API 回 403 `{"detail":"forbidden"}` | Worker 驗 JWT 失敗：AUD 複製錯，或 team name 多打了 `.cloudflareaccess.com` |
 | runner 拿到 HTML 登入頁 | `.env` 的 token 錯，或 token 沒加進 Service Auth policy |
-| runner 啟動就結束：`tally: API_BASE is required` | `.env` 沒設 `API_BASE`（沒有預設值），填上你自己的 Worker 網址 |
-| 網頁顯示 runner「離線」 | Mac 睡眠、登出，或 launchd 沒在跑：`launchctl print gui/$(id -u)/ai.3mi.tally-runner`，看 `data/logs/runner.log` |
+| runner 啟動就結束：`yanroku: API_BASE is required` | `.env` 沒設 `API_BASE`（沒有預設值），填上你自己的 Worker 網址 |
+| 網頁顯示 runner「離線」 | Mac 睡眠、登出，或 launchd 沒在跑：`launchctl print gui/$(id -u)/ai.3mi.yanroku-runner`，看 `data/logs/runner.log` |
 | log 出現 `whisper-cli: not found` 之類 | launchd 的 PATH 沒有 `/opt/homebrew/bin`；用 `install-launchd.sh` 重裝（它會設好 PATH） |
 | log 出現 `groq quota exhausted` | Groq 免費額度（每小時音訊秒數）用完。runner 會把轉錄放回佇列、暫停領 STT 工作，期間只做摘要，額度恢復後自動續跑；已完成的片段有快取不會重送。等待，或改 `STT_PROVIDER=local` |
 | 轉錄失敗、磁碟空間不足 | 模型約 1.5 GB，處理中的音訊會暫存在 `DATA_DIR`。清出空間，或把 `DATA_DIR` 指到有空間的內建磁碟 |
-| 執行 `./tally` 直接 `killed` | 用 `cp` 覆蓋了 macOS 跑過的 binary，會被 SIGKILL。改用 `runner/deploy.sh`（寫新檔再 `mv`），或手動 build 到新檔名再 `mv` |
-| 找不到 `libsherpa-onnx-c-api.dylib` | `tally` 旁邊沒有 `lib/`；照 4.3 複製 dylib，或直接跑 `deploy.sh` |
+| 執行 `./yanroku` 直接 `killed` | 用 `cp` 覆蓋了 macOS 跑過的 binary，會被 SIGKILL。改用 `runner/deploy.sh`（寫新檔再 `mv`），或手動 build 到新檔名再 `mv` |
+| 找不到 `libsherpa-onnx-c-api.dylib` | `yanroku` 旁邊沒有 `lib/`；照 4.3 複製 dylib，或直接跑 `deploy.sh` |
 | 摘要／整理失敗 | ACP agent 沒裝或登入過期（`claude login` / `codex login`），或模型不被支援；見 4.5 |
