@@ -1,13 +1,13 @@
 <div align="center">
   <img src="docs/logo.svg" alt="Yanroku logo" width="96" />
   <h1>Yanroku 言錄</h1>
-  <p><b>AI voice notes you host yourself: speaker-labelled transcripts and summaries.</b><br>Your audio lives in your Cloudflare account, your Mac does the transcription, and the Claude Code or Codex you already pay for writes the summaries.</p>
+  <p><b>AI voice notes you host yourself: speaker-labelled transcripts and summaries.</b><br>Your audio stays on your Mac (or in your own Cloudflare account), your Mac does the transcription, and the Claude Code or Codex you already pay for writes the summaries.</p>
 </div>
 
 <p align="center">
   <a href="LICENSE"><img alt="License: AGPL-3.0" src="https://img.shields.io/github/license/SammyLin/yanroku?style=flat-square" /></a>
   <a href="runner/go.mod"><img alt="Go" src="https://img.shields.io/github/go-mod/go-version/SammyLin/yanroku?filename=runner%2Fgo.mod&style=flat-square" /></a>
-  <a href="#architecture"><img alt="Cloudflare Workers" src="https://img.shields.io/badge/Cloudflare_Workers-D1_%2B_R2-F38020?style=flat-square" /></a>
+  <a href="#architecture"><img alt="Runs locally or on Cloudflare Workers" src="https://img.shields.io/badge/runs_on-your_Mac_%7C_Cloudflare_Workers-F38020?style=flat-square" /></a>
   <a href="#self-host"><img alt="Self-host" src="https://img.shields.io/badge/self--host-Apple_Silicon_runner-142D3B?style=flat-square" /></a>
 </p>
 
@@ -23,9 +23,9 @@ Don't want to run a server? See [Yanroku Cloud](#yanroku-cloud).
 
 ## Why
 
-Plaud-style voice recorders and note apps usually keep your meetings on the vendor's servers and charge a subscription for the AI features. Yanroku is the same idea built from parts you already own: a Cloudflare account stores the audio, a Mac transcribes it, and the Claude or ChatGPT plan you already have writes the summaries.
+Plaud-style voice recorders and note apps usually keep your meetings on the vendor's servers and charge a subscription for the AI features. Yanroku is the same idea built from parts you already own: your Mac stores and transcribes the audio (or a Cloudflare account stores it), and the Claude or ChatGPT plan you already have writes the summaries.
 
-- **Your storage.** Audio sits in your own R2 bucket and metadata in your own D1 database, behind your own Cloudflare Access login.
+- **Your storage.** On one Mac, everything is a SQLite file and a folder of audio on that Mac. On Cloudflare, audio sits in your own R2 bucket and metadata in your own D1 database, behind your own Cloudflare Access login.
 - **Your hardware.** Speech-to-text runs on your Mac with `whisper.cpp` (Metal), unless you choose Groq.
 - **Your AI subscription.** Clean-up, titles, summaries and Ask go through Claude Code or Codex over ACP. No API key, no separate bill.
 - **Your code.** Everything that runs is in this repository, under AGPL-3.0.
@@ -45,7 +45,7 @@ Plaud-style voice recorders and note apps usually keep your meetings on the vend
 | **Copy as prompt** | Copy the summary and/or transcript (or a selected passage) as a prompt for ChatGPT or Claude, with a length estimate, or download it as `.md` |
 | **Runner status** | See which Macs are online, what they are working on, and which ones run an older build |
 | **Web Push** | Optional "processing finished" notifications (iOS needs the home-screen web app) |
-| **iOS app** | The [Yanroku app](https://yanroku.app) can connect to your own server ("連線到自己的伺服器"). The app is a separate product; this repository is the server |
+| **iOS app** | The [Yanroku app](https://yanroku.app) can connect to your own Cloudflare-hosted server ("連線到自己的伺服器"; not to local mode yet, which is browser-only). The app is a separate product; this repository is the server |
 
 Light and dark themes, a URL for every view, and layouts down to 360 px wide.
 
@@ -60,6 +60,17 @@ Speech-to-text (whisper.cpp or Groq) and speaker labels (sherpa-onnx) are separa
 
 ## Architecture
 
+The same server code (`web/src`) runs in one of two places.
+
+**Local mode** (`yanroku up`, one Mac):
+
+```
+ browser ──▶ yanroku up ─┬─▶ node web/local (same Worker code) ──▶ SQLite + audio files in runner/data/web
+                         └─▶ runner loop (same process)            ffmpeg · whisper-cli · sherpa-onnx · ACP agent
+```
+
+**On Cloudflare** (several Macs, reachable from anywhere, the iOS app):
+
 ```
  browser / iOS app ──▶ Cloudflare Worker (web/) ──▶ D1 (metadata) + R2 (audio)
                          ▲  behind Cloudflare Access
@@ -69,14 +80,15 @@ Speech-to-text (whisper.cpp or Groq) and speaker labels (sherpa-onnx) are separa
 
 | Path | What it holds |
 |---|---|
-| `web/` | Cloudflare Worker in TypeScript, no framework: API, static UI (`web/public/index.html`), D1 migrations |
-| `runner/` | Go binary for Apple Silicon Macs. Claims jobs from the Worker, does the heavy work locally, pushes results back. Several runners can share the queue |
+| `web/` | The server in TypeScript, no framework: API (`web/src`), static UI (`web/public/index.html`), migrations. Deployed as a Cloudflare Worker |
+| `web/local/` | Local mode: the same server on Node (`node:http`), with D1 → `node:sqlite` and R2 → files |
+| `runner/` | Go binary (`yanroku`) for Apple Silicon Macs. Claims jobs from the server, does the heavy work locally, pushes results back. Several runners can share the queue. `yanroku up` also starts the local server |
 | `docs/SPEC.md` | Contracts between the Worker, the web app and the runner: schema, API, pipeline |
 | `docs/SELF-HOST.md` | The full self-hosting guide |
 
-Audio is stored in your Cloudflare account and transcribed on your Mac (unless you pick Groq).
+Audio is transcribed on your Mac (unless you pick Groq) and stored on that Mac in local mode, or in your Cloudflare account.
 
-**Security.** The Worker fails closed: without `ACCESS_TEAM` / `ACCESS_AUD` every API call returns 503, and each request's Cloudflare Access JWT is verified. The schema is multi-user (every row carries a `user_id` and every query is scoped by it, covered by a two-user isolation test), but this entry authenticates a single user: everyone who passes Access is that user. Other sign-in schemes plug in through `createWorker` (see "Extending the server" in [`docs/SPEC.md`](docs/SPEC.md)).
+**Security.** Local mode listens on 127.0.0.1 only and accepts only `localhost` / `127.0.0.1` / `[::1]` as the Host (against DNS rebinding). Binding any other address requires `LOCAL_PASSWORD`, exchanged at `/login` for a signed session cookie; the runner API takes only a token generated on every start. On Cloudflare, the Worker fails closed: without `ACCESS_TEAM` / `ACCESS_AUD` every API call returns 503, and each request's Cloudflare Access JWT is verified. The schema is multi-user (every row carries a `user_id` and every query is scoped by it, covered by a two-user isolation test), but this entry authenticates a single user: everyone who passes Access is that user. Other sign-in schemes plug in through `createWorker` (see "Extending the server" in [`docs/SPEC.md`](docs/SPEC.md)).
 
 ## Self-host
 
@@ -109,7 +121,7 @@ brew install go ffmpeg whisper-cpp node
 npm i -g @agentclientprotocol/claude-agent-acp && claude login
 cd ../runner && cp .env.example .env   # API_BASE + this Mac's Access service token
 ./deploy.sh                            # build, download models (~1.5 GB), restart if installed
-./yanroku run                            # try it in the foreground
+./yanroku run                          # try it in the foreground
 sh install-launchd.sh                  # then run it as a launchd service
 ```
 
@@ -121,21 +133,23 @@ Local development: see [`CLAUDE.md`](CLAUDE.md).
 
 | Variable | Default | |
 |---|---|---|
-| `API_BASE` | — (required) | Your Worker's URL. The runner refuses to start without it |
-| `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` | | This Mac's Cloudflare Access service token |
+| `LOCAL_HOST` / `--host` | `127.0.0.1` | Local mode: address to listen on. Anything but loopback requires `LOCAL_PASSWORD` |
+| `LOCAL_PORT` / `--port` | `8780` | Local mode: port |
+| `LOCAL_PASSWORD` | | Local mode: the web sign-in, required off loopback. Changing it signs everyone out |
+| `YANROKU_WEB` | `runner/../web` | Local mode: the repo's `web/`; only needed when the binary lives outside the repo |
+| `API_BASE` | — | Cloudflare only (`yanroku run`, required there): your Worker's URL, e.g. `https://notes.example.com`. `yanroku run` exits if it is missing or not a valid URL |
+| `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` | | Cloudflare only: this Mac's Access service token |
 | `RUNNER_NAME` | hostname | Shown as the job owner and in runner status |
-
-`API_BASE` is required and has no default. Set it to your own Worker's URL (for example `https://notes.example.com`). If it is missing, empty or not a valid URL, `yanroku run` exits with an error.
 | `STT_PROVIDER` | `local` | `local` = whisper-cli on this Mac; `groq` = Groq Whisper API (audio leaves the Mac) |
 | `WHISPER_MODEL` / `WHISPER_LANG` | `data/models/ggml-large-v3-turbo.bin` / `zh` | Local speech-to-text |
 | `GROQ_API_KEY` / `GROQ_MODEL` | / `whisper-large-v3` | Required for `groq` |
 | `DIARIZE` / `NUM_SPEAKERS` | `1` / `0` | `DIARIZE=0` = single speaker; `NUM_SPEAKERS=0` = detect the count |
 | `ACP_AGENT` | `claude-agent-acp` | The ACP agent command (Claude Code or Codex, see above) |
 | `ACP_MODEL` | `opus` | Claude Code model alias; ignored by Codex |
-| `DATA_DIR` | `data` | Models, work files and logs |
+| `DATA_DIR` | `data` | Models, work files and logs; in local mode also the server's data (`DATA_DIR/web`) |
 | `RUNNER_TOKEN` | | Only for a multi-user deployment that checks a runner token; leave empty when self-hosting behind Access |
 
-**Worker** (`vars` in your `wrangler.jsonc` env):
+**Worker** on Cloudflare (`vars` in your `wrangler.jsonc` env; in local mode `VOICE_*`, `VAPID_*` and `TRANSFER_ENABLED` are read from `runner/.env` instead):
 
 | Variable | |
 |---|---|
@@ -148,7 +162,9 @@ Local development: see [`CLAUDE.md`](CLAUDE.md).
 
 ## Updating
 
-Back up D1 first (migrations cannot be rolled back), then update in this order: migrations, Worker, runners. A new Worker may need new columns, and a new runner may need new API routes.
+**Local mode:** stop it, copy `runner/data/web/` somewhere as a backup, then `runner/deploy.sh` (pulls, builds, restarts the launchd service if you installed one). Migrations are applied automatically on the next start.
+
+**On Cloudflare:** back up D1 first (migrations cannot be rolled back), then update in this order: migrations, Worker, runners. A new Worker may need new columns, and a new runner may need new API routes.
 
 ```sh
 cd yanroku/web
