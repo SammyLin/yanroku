@@ -136,34 +136,34 @@ git clone https://github.com/SammyLin/yanroku.git ~/noteapp
 # 3) 編譯 runner（sherpa 的 dylib 要跟著 binary 放在 lib/）
 cd ~/noteapp/runner
 mkdir -p lib && cp "$(go list -m -f '{{.Dir}}' github.com/k2-fsa/sherpa-onnx-go-macos)"/lib/aarch64-apple-darwin/lib{sherpa-onnx-c-api,onnxruntime}.dylib lib/ && chmod u+w lib/*
-go build -ldflags '-extldflags "-Wl,-rpath,@executable_path/lib"' -o tally .
+go build -ldflags '-extldflags "-Wl,-rpath,@executable_path/lib"' -o yanroku .
 
 # 4) 設定 .env（照第 6 步，用 runner-home-mac 的 token）
 cp .env.example .env && open -e .env
 
 # 5) 下載模型（約 1.5 GB，放在 data/models）
-./tally models
+./yanroku models
 
 # 6) 先前景跑一次確認能連線（Ctrl-C 結束）
-./tally run
+./yanroku run
 ```
 
 ### 用 launchd 常駐（開機自動跑、掛了自動重啟）
 
-在 `runner/` 目錄（編譯好 `./tally`、放好 `.env` 之後）執行：
+在 `runner/` 目錄（編譯好 `./yanroku`、放好 `.env` 之後）執行：
 
 ```sh
 sh install-launchd.sh
 ```
 
-它會依這個目錄與目前使用者產生 `~/Library/LaunchAgents/ai.3mi.tally-runner.plist`（不用手改路徑）、移除改名前的 `ai.3mi.noteapp-runner`，並啟動 runner。更新程式後重新編譯，再跑一次即可。
+它會依這個目錄與目前使用者產生 `~/Library/LaunchAgents/ai.3mi.yanroku-runner.plist`（不用手改路徑）、移除改名前的 `ai.3mi.noteapp-runner`，並啟動 runner。更新程式後重新編譯，再跑一次即可。
 
 常用指令：
 
 ```sh
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/ai.3mi.tally-runner.plist   # 啟用並啟動
-launchctl kickstart -k gui/$(id -u)/ai.3mi.tally-runner                            # 重啟（改完 .env 或重新編譯後）
-launchctl bootout gui/$(id -u)/ai.3mi.tally-runner                                 # 停用
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/ai.3mi.yanroku-runner.plist   # 啟用並啟動
+launchctl kickstart -k gui/$(id -u)/ai.3mi.yanroku-runner                            # 重啟（改完 .env 或重新編譯後）
+launchctl bootout gui/$(id -u)/ai.3mi.yanroku-runner                                 # 停用
 tail -f ~/noteapp/runner/data/logs/runner.log                                             # 看 log
 ```
 

@@ -111,7 +111,7 @@ func reportSentry(msg string, extra map[string]any) {
 	defer cancel()
 	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, d.endpoint, &body)
 	req.Header.Set("Content-Type", "application/x-sentry-envelope")
-	req.Header.Set("X-Sentry-Auth", "Sentry sentry_version=7, sentry_client=tally-runner/1, sentry_key="+d.key)
+	req.Header.Set("X-Sentry-Auth", "Sentry sentry_version=7, sentry_client=yanroku-runner/1, sentry_key="+d.key)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "sentry:", err)
