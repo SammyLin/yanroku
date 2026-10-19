@@ -318,6 +318,37 @@ Runner still runs cleanup + title via local ACP between `transcript` and `done`,
 - Everything above + folders (see Folders section) + mobile: works at 360 px; library becomes a drawer on narrow screens.
 - Record button (MediaRecorder, mic): shows timer + level; on stop uploads via the multipart API (iOS gives audio/mp4, others audio/webm — keep the extension matching the mime). Keep screen awake during recording where supported (Wake Lock API).
 
+## Local mode (`yanroku up`) — decided 2026-10-19
+
+The same Worker code without Cloudflare, for one Mac. `yanroku up` (`runner/up.go`) starts `node web/local/main.ts` and then
+the usual runner loop against it.
+
+- `web/local/`: `d1.ts` (D1 on `node:sqlite`: prepare/bind/first/all/run/raw, `batch` = one transaction, `meta.changes` from
+  `total_changes()`, booleans bind as 1/0, foreign keys on), `r2.ts` (R2 on files: `objects/<key>`, `meta/<key>.json`,
+  `uploads/<id>/part-N`; ranges; multipart etags checked on complete; uploads older than 7 days pruned), `migrate.ts`
+  (`migrations/*.sql` not in `d1_migrations`, each in a transaction, at every start), `auth.ts`, `server.ts` (`node:http`:
+  `/api/*` and `/media/*` → `createWorker`, other paths → a file from `public/` if there is one, else the Worker, as
+  wrangler's assets), `main.ts` (entry; registers a resolve hook for src/'s extensionless imports). Node ≥ 22.18, no npm
+  dependencies at run time. `GET /api/config` says `auth_mode: "local"`.
+- Data: `DATA_DIR/web/` — `yanroku.db`, `audio/`, `secret` (signs session cookies, 0600, created once).
+- Sign-in (`auth.ts`), always uid 1: bound to loopback (`LOCAL_HOST` default `127.0.0.1`) = no sign-in, but only `Host:`
+  localhost / 127.0.0.1 / [::1] (DNS rebinding). Any other bind requires `LOCAL_PASSWORD` (up and the server refuse to start
+  without it): `GET /login` form, `POST /login` (urlencoded, not cross-site, 1 s delay on a wrong password) → 303 + cookie
+  `yanroku_session=<exp>.<HMAC(HMAC(secret, password), exp)>` (HttpOnly, SameSite=Lax, 30 days; a new password signs everyone
+  out); pages redirect to `/login`, API calls get 401. `/api/runner/*` takes only `Authorization: Bearer <token>`, a random
+  32-byte token `up` generates per start and hands to node in `YANROKU_RUNNER_TOKEN` (env, not argv).
+- `up`: flags `--host` / `--port` over `LOCAL_HOST` / `LOCAL_PORT` (default 8780); web dir `YANROKU_WEB` or `<binary>/../web`.
+  Node gets only PATH/HOME/locale, `LOCAL_PASSWORD`, `TRANSFER_ENABLED`, `VAPID_*`, `VOICE_*` from the environment (not the
+  runner's API keys). Ready = node prints `yanroku: listening <port>`; its output is prefixed `[web]`. The runner always
+  uses `http://127.0.0.1:<port>`; a bind to one non-loopback address adds a 127.0.0.1 listener for it. Shutdown: the runner
+  stops first (hands its job back over the server), then SIGTERM to node (killed after 10 s). Under `up` node ignores
+  SIGINT and exits when its stdin closes, so it never outlives `up`. If node dies, `up` exits with an error.
+- launchd: `install-launchd.sh --local` runs `yanroku up` and pins `YANROKU_WEB` in the plist; a reinstall without
+  `--local` / `--remote` keeps the installed mode.
+- Not covered: the iOS app (it signs in through Access), more than one runner, HTTPS (put Tailscale Serve / Caddy in front).
+- Tests: `test/local-d1.test.ts`, `test/local-r2.test.ts`, `test/local-server.test.ts` (sign-in), `test/isolation-local.test.ts`
+  (the two-user suite on the local server); `runner/up_test.go` (flags, env, start, Ctrl-C, web dies).
+
 ## Voiceprints (cross-recording speaker identification) — decided 2026-09-30
 
 Goal: once the user names a speaker, the same voice in later recordings is labelled automatically.
