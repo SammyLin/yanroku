@@ -20,8 +20,8 @@ dst=${YANROKU_DIR:-${TALLY_DIR:-$(dirname "${prog:-${oldprog:-$src/yanroku}}")}}
 echo "installing into $dst"
 if [ ! -f "$dst/.env" ]; then
   echo "warning: $dst/.env is missing (copy .env.example and fill it in)" >&2
-elif ! grep -Eq '^API_BASE=[[:space:]]*[^[:space:]]' "$dst/.env"; then
-  echo "warning: API_BASE is empty in $dst/.env; the runner will refuse to start" >&2
+elif ! grep -Eq '^API_BASE=[[:space:]]*[^[:space:]]' "$dst/.env" && ! grep -q '<string>up</string>' "$HOME/Library/LaunchAgents/$label.plist" 2>/dev/null; then
+  echo "warning: API_BASE is empty in $dst/.env; \`yanroku run\` will refuse to start (local mode, \`yanroku up\`, does not need it)" >&2
 fi
 mkdir -p "$dst/lib"
 
@@ -40,7 +40,7 @@ echo "built $("$dst/yanroku" version)"
 
 # Pre-rename install: swap the ai.3mi.tally-runner agent for ai.3mi.yanroku-runner (install-launchd.sh removes the old one)
 if [ -z "$prog" ] && [ -n "$oldprog" ]; then
-  YANROKU_DIR="$dst" sh "$src/install-launchd.sh"
+  YANROKU_DIR="$dst" YANROKU_WEB="$src/../web" sh "$src/install-launchd.sh"
   rm -f "$dst/tally"
   exit 0
 fi

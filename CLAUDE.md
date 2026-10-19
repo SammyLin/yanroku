@@ -4,12 +4,13 @@ Yanroku 言錄 — the self-hostable server of the Yanroku AI voice notes (renam
 
 Layout:
 - `web/` — Cloudflare Worker (TypeScript): API, UI (`public/index.html`), D1 migrations. Data lives in D1 + R2, behind Cloudflare Access.
+- `web/local/` — local mode (`yanroku up`, no Cloudflare): the same Worker on `node:http` with D1 → `node:sqlite` and R2 → files (docs/SPEC.md "Local mode"). Typecheck with `npx tsc -p local`.
 - `runner/` — Go, runs on the Mac: pulls jobs from the Worker, runs ffmpeg / whisper-cli / sherpa-onnx diarization / ACP (local Claude), pushes results back. Config in `runner/.env` (see `.env.example`).
 - The iOS app and the hosted Yanroku Cloud (Clerk sign-in, landing page, cloud deploy) live in a private repo that pulls this one in as the `core/` submodule. Nothing cloud-specific belongs here: extend through the seam instead.
 
 Worker seam (`web/src/`): `app.ts` has the routes, the dispatcher and `createWorker({ identify, extraRoutes?, config?, onScheduled? })`; `index.ts` is the self-host entry (`createWorker({ identify: accessIdentify })`). The UI loads the `/api/config` `extensions` scripts and exposes `window.yanroku`. Contract: docs/SPEC.md "Extending the server".
 
-Web checks (run from `web/`): `npx tsc`, `npm test`, `npm run test:isolation` (two users against every route via `test/fake-identify.ts`; a new route needs a case in `test/isolation.ts`), `npm run test:migrate`.
+Web checks (run from `web/`): `npx tsc && npx tsc -p local`, `npm test` (includes the local-mode tests and the isolation suite on the local server), `npm run test:isolation` (two users against every route via `test/fake-identify.ts`; a new route needs a case in `test/isolation.ts`), `npm run test:migrate`.
 
 Runner (run from `runner/`):
 - Run: `go run .` (= `run`: claim jobs from `API_BASE`; API_BASE is required (no default); runner exits if unset). Batch upload: `go run . ingest <folder>`. Models: `go run . models`.

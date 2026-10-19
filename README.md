@@ -80,7 +80,19 @@ Audio is stored in your Cloudflare account and transcribed on your Mac (unless y
 
 ## Self-host
 
-Requirements: a Cloudflare account with your domain on it (Workers Paid recommended for CPU, D1 and R2 limits), and an Apple Silicon Mac that stays awake, with Homebrew.
+**Just one Mac, no Cloudflare:** the web server and the runner in one command, data in local SQLite + files (Node.js 22.18+):
+
+```sh
+git clone https://github.com/SammyLin/yanroku.git && cd yanroku/runner
+brew install go ffmpeg whisper-cpp node
+npm i -g @agentclientprotocol/claude-agent-acp && claude login
+cp .env.example .env && ./deploy.sh    # build, download models (~1.5 GB)
+./yanroku up                           # http://127.0.0.1:8780 (sh install-launchd.sh --local to keep it running)
+```
+
+It listens on 127.0.0.1 only; `--host 0.0.0.0` (or `LOCAL_HOST`) opens it to other devices and then requires `LOCAL_PASSWORD`. See [`docs/SELF-HOST.md` section 0](docs/SELF-HOST.md#0-最簡單本機模式不用-cloudflare).
+
+**On Cloudflare** (several Macs sharing the work, reachable from anywhere, the iOS app): requirements: a Cloudflare account with your domain on it (Workers Paid recommended for CPU, D1 and R2 limits), and an Apple Silicon Mac that stays awake, with Homebrew.
 
 The step-by-step guide (D1/R2, a wrangler `env` for your deployment, Cloudflare Access with one service token per runner, the runner as a launchd service, connecting the iOS app) is [`docs/SELF-HOST.md`](docs/SELF-HOST.md) (Traditional Chinese, with an English summary). Short version:
 
