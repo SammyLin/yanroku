@@ -20,8 +20,9 @@ export interface IsolationOptions {
   tokenA: Headers; tokenB: Headers; runner: Headers; // request headers that authenticate user A, user B, the runner
   routes: [string, RegExp, unknown][]; // every route the Worker serves (core routes + any extraRoutes)
   cases?: (kit: CaseKit) => Case[];
-  d1: string[]; // `wrangler d1 execute` args naming the database, e.g. ["noteapp"]
-  dbDir: string; // the --persist-to dir the Worker runs on
+  d1?: string[]; // `wrangler d1 execute` args naming the database, e.g. ["noteapp"]
+  dbDir?: string; // the --persist-to dir the Worker runs on
+  query?: (sql: string) => Record<string, unknown>[]; // instead of d1 + dbDir: read the Worker's database directly
   forgetRunnerStatus?: number; // DELETE /api/runners/<online runner>: 409 in core
 }
 
@@ -303,9 +304,9 @@ export async function runIsolation(o: IsolationOptions) {
     assert.deepEqual((await ok(call(A, "GET", "/api/vocab/suggestions"))).suggestions.map((x: { term: string }) => x.term), ["A-term"]);
     assert.equal((await call(A, "GET", `/media/${recA}`)).text, "m4a!");
     // push rows have no read API: check the owner in the local D1
-    const out = execFileSync("npx", ["wrangler", "d1", "execute", ...o.d1, "--local", "--persist-to", o.dbDir, "--json",
-      "--command", "SELECT endpoint, user_id FROM push_subscriptions ORDER BY endpoint"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
-    const subs = JSON.parse(out)[0].results as { endpoint: string; user_id: number }[];
+    const sql = "SELECT endpoint, user_id FROM push_subscriptions ORDER BY endpoint";
+    const subs = (o.query ? o.query(sql) : JSON.parse(execFileSync("npx", ["wrangler", "d1", "execute", ...o.d1!, "--local", "--persist-to", o.dbDir!, "--json",
+      "--command", sql], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }))[0].results) as { endpoint: string; user_id: number }[];
     const owner = (e: string) => subs.find((x) => x.endpoint === e)?.user_id;
     assert.ok(owner("https://push.example/a") && owner("https://push.example/b") && owner("https://push.example/a") !== owner("https://push.example/b"), JSON.stringify(subs));
   }

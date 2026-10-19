@@ -108,7 +108,7 @@ var sttPausedUntil time.Time
 // ponytail: one job at a time; STT saturates the GPU anyway.
 func run(ctx context.Context, cfg Config) error {
 	c := newClient(cfg)
-	if c.id == "" {
+	if c.id == "" && c.token == "" {
 		slog.Warn("CF_ACCESS_CLIENT_ID not set; requests will be rejected by Cloudflare Access")
 	}
 	// work dirs of jobs that crashed here (and finished elsewhere); safe since this process owns DATA_DIR/work

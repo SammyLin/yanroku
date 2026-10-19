@@ -5,13 +5,14 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "check": "tsc",
-    "test": "node test/auth.test.ts && node test/voice.test.ts && node test/settings.test.ts && node test/push.test.ts && node test/transfer.test.ts && node test/zip.test.ts",
+    "check": "tsc && tsc -p local",
+    "test": "node test/auth.test.ts && node test/voice.test.ts && node test/settings.test.ts && node test/push.test.ts && node test/transfer.test.ts && node test/zip.test.ts && node test/local-d1.test.ts && node test/local-r2.test.ts && node test/local-server.test.ts && node test/isolation-local.test.ts",
     "test:isolation": "sh test/isolation.sh",
     "test:migrate": "sh test/migrate.sh"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260930.1",
+    "@types/node": "^22.20.5",
     "typescript": "^5.9.3",
     "wrangler": "^4.144.0"
   }
