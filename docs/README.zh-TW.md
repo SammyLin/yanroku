@@ -80,7 +80,19 @@ Plaud 這類錄音筆和筆記 App，錄音通常存在廠商的伺服器上，A
 
 ## 自架
 
-需要：網域放在 Cloudflare 上的 Cloudflare 帳號（建議 Workers Paid，CPU、D1、R2 額度都比較夠），以及一台能一直開著、裝了 Homebrew 的 Apple Silicon Mac。
+**只用一台 Mac、不用 Cloudflare**：一個指令把網頁服務和 runner 一起跑起來，資料存在本機的 SQLite 和檔案（需要 Node.js 22.18 以上）：
+
+```sh
+git clone https://github.com/SammyLin/yanroku.git && cd yanroku/runner
+brew install go ffmpeg whisper-cpp node
+npm i -g @agentclientprotocol/claude-agent-acp && claude login
+cp .env.example .env && ./deploy.sh    # 編譯、下載模型（約 1.5 GB）
+./yanroku up                           # http://127.0.0.1:8780（要常駐：sh install-launchd.sh --local）
+```
+
+預設只聽 127.0.0.1；用 `--host 0.0.0.0`（或 `LOCAL_HOST`）開放給其他裝置時必須設 `LOCAL_PASSWORD`。詳見 [`docs/SELF-HOST.md` 第 0 節](SELF-HOST.md#0-最簡單本機模式不用-cloudflare)。
+
+**架在 Cloudflare 上**（多台 Mac 分攤、在外面也能連、用 iOS App）：需要：網域放在 Cloudflare 上的 Cloudflare 帳號（建議 Workers Paid，CPU、D1、R2 額度都比較夠），以及一台能一直開著、裝了 Homebrew 的 Apple Silicon Mac。
 
 完整步驟（D1/R2、為自己的部署加一個 wrangler `env`、Cloudflare Access 與每台 runner 一個 service token、用 launchd 常駐 runner、連上 iOS App）在 [`SELF-HOST.md`](SELF-HOST.md)。簡短版：
 

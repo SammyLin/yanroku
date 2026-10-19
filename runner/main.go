@@ -48,6 +48,8 @@ func main() {
 	switch {
 	case cmd == "run" && len(args) == 0:
 		err = run(ctx, cfg)
+	case cmd == "up":
+		err = up(ctx, cfg, args)
 	case cmd == "ingest" && len(args) == 1:
 		err = ingest(ctx, newClient(cfg), args[0])
 	case cmd == "voiceprints" && len(args) == 0:
@@ -60,7 +62,7 @@ func main() {
 		rev, at := buildVersion()
 		fmt.Println(rev, at)
 	default:
-		err = errors.New("usage: yanroku [run] | yanroku ingest <folder> | yanroku voiceprints [--recompute] | yanroku models | yanroku version")
+		err = errors.New("usage: yanroku [run] | yanroku up [--host 127.0.0.1] [--port 8780] | yanroku ingest <folder> | yanroku voiceprints [--recompute] | yanroku models | yanroku version")
 	}
 	if err != nil {
 		fatal(err)

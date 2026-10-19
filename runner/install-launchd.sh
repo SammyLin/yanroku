@@ -2,6 +2,8 @@
 # Installs (or reinstalls) this runner as a launchd agent for the current user, using this directory.
 # Run after building ./yanroku (see docs/SETUP.md). Also removes the pre-rename ai.3mi.noteapp-runner and
 # ai.3mi.tally-runner agents. YANROKU_DIR=/path installs a runner copied elsewhere (deploy.sh uses this).
+# --local runs `yanroku up` (local mode: web server + runner on this Mac, no Cloudflare) instead of `yanroku run`.
+# With neither flag, a reinstall keeps the mode the installed agent already has.
 set -eu
 dir=$(cd "${YANROKU_DIR:-$(dirname "$0")}" && pwd)
 label=ai.3mi.yanroku-runner
@@ -9,8 +11,26 @@ agents="$HOME/Library/LaunchAgents"
 plist="$agents/$label.plist"
 dom="gui/$(id -u)"
 
+mode=
+case "${1:-}" in
+  --local) mode=up ;;
+  --remote) mode=run ;;
+  "") grep -q '<string>up</string>' "$plist" 2>/dev/null && mode=up || mode=run ;;
+  *) echo "usage: $0 [--local | --remote]" >&2; exit 2 ;;
+esac
+
 [ -x "$dir/yanroku" ] || { echo "build ./yanroku first (docs/SETUP.md step 3)" >&2; exit 1; }
 [ -f "$dir/.env" ] || { echo "missing $dir/.env (copy .env.example)" >&2; exit 1; }
+webenv=
+if [ "$mode" = up ]; then
+  # `yanroku up` needs the repo's web/ (node runs web/local/main.ts); a copy outside the repo sets YANROKU_WEB
+  src=$(cd "$(dirname "$0")" && pwd)
+  pinned=$(sed -n 's#.*<key>YANROKU_WEB</key><string>\(.*\)</string>.*#\1#p' "$plist" 2>/dev/null | head -n 1)
+  web=${YANROKU_WEB:-${pinned:-$src/../web}}
+  [ -f "$web/local/main.ts" ] || { echo "web server not found at $web/local/main.ts (set YANROKU_WEB to the repo's web/)" >&2; exit 1; }
+  web=$(cd "$web" && pwd)
+  webenv="<key>YANROKU_WEB</key><string>$web</string>"
+fi
 
 for prev in ai.3mi.noteapp-runner ai.3mi.tally-runner; do
   launchctl bootout "$dom/$prev" 2>/dev/null || true
@@ -28,12 +48,13 @@ cat > "$plist" <<EOF
   <key>ProgramArguments</key>
   <array>
     <string>$dir/yanroku</string>
-    <string>run</string>
+    <string>$mode</string>
   </array>
   <key>WorkingDirectory</key><string>$dir</string>
   <key>EnvironmentVariables</key>
   <dict>
     <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$HOME/.local/bin</string>
+    $webenv
   </dict>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><true/>
@@ -48,4 +69,4 @@ EOF
 plutil -lint "$plist" >/dev/null
 launchctl enable "$dom/$label"
 launchctl bootstrap "$dom" "$plist"
-echo "started $label — log: $dir/data/logs/runner.log"
+echo "started $label ($dir/yanroku $mode) — log: $dir/data/logs/runner.log"

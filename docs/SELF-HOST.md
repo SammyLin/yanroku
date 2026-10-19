@@ -1,8 +1,48 @@
 # 自架 Yanroku（言錄）
 
-> **English summary.** Yanroku (repo `SammyLin/yanroku`) is self-hosted: a Cloudflare Worker (`web/`) stores metadata in D1 and audio in R2, behind Cloudflare Access; one or more Apple Silicon Macs run the Go runner (`runner/`) that claims jobs and does transcription (whisper.cpp or Groq), speaker diarization (sherpa-onnx) and clean-up / summaries / Ask through a local ACP agent — Claude Code by default, or Codex — so these run on the Claude or ChatGPT subscription you already have, with no separate API bill (see 4.5). To self-host: (1) put your own domain on Cloudflare, (2) create your own D1 + R2 and add a wrangler `env` with their names, (3) apply migrations and deploy, (4) protect the domain with Cloudflare Access (your email + a Service Auth policy with one service token per runner) and set `ACCESS_TEAM` / `ACCESS_AUD`, (5) build and install the runner on a Mac with `runner/.env` pointing at your domain, (6) connect the Yanroku iOS app (https://yanroku.app, "連線到自己的伺服器") or a browser. `docs/SETUP.md` is the maintainer's own deployment log; this file is the general guide.
+> **English summary.** Yanroku (repo `SammyLin/yanroku`) is self-hosted: a Cloudflare Worker (`web/`) stores metadata in D1 and audio in R2, behind Cloudflare Access; one or more Apple Silicon Macs run the Go runner (`runner/`) that claims jobs and does transcription (whisper.cpp or Groq), speaker diarization (sherpa-onnx) and clean-up / summaries / Ask through a local ACP agent — Claude Code by default, or Codex — so these run on the Claude or ChatGPT subscription you already have, with no separate API bill (see 4.5). To self-host: (1) put your own domain on Cloudflare, (2) create your own D1 + R2 and add a wrangler `env` with their names, (3) apply migrations and deploy, (4) protect the domain with Cloudflare Access (your email + a Service Auth policy with one service token per runner) and set `ACCESS_TEAM` / `ACCESS_AUD`, (5) build and install the runner on a Mac with `runner/.env` pointing at your domain, (6) connect the Yanroku iOS app (https://yanroku.app, "連線到自己的伺服器") or a browser. `docs/SETUP.md` is the maintainer's own deployment log; this file is the general guide. **No Cloudflare at all:** section 0 runs everything on one Mac with `./yanroku up` (web server on `127.0.0.1:8780` by default, data in `runner/data/web/`; `--host` / `LOCAL_HOST` opens it to other devices and then needs `LOCAL_PASSWORD`).
 
-這份是給「clone 這個 repo、要架在自己 Cloudflare 帳號上」的人看的。以下所有 `your-domain.com`、`<team>`、`<db-id>` 都是佔位，換成你自己的值。
+這份是給「clone 這個 repo、要自己架」的人看的。不想碰 Cloudflare、只在一台 Mac 上用的話，看[第 0 節](#0-最簡單本機模式不用-cloudflare)就夠了；第 1 節之後是架在自己 Cloudflare 帳號上的做法。以下所有 `your-domain.com`、`<team>`、`<db-id>` 都是佔位，換成你自己的值。
+
+---
+
+## 0. 最簡單：本機模式（不用 Cloudflare）
+
+只想在自己這台 Mac 上用，不需要 Cloudflare 帳號、網域或 Access：一個指令把網頁服務和 runner 一起跑起來。網頁和 API 是同一份程式（`web/src`），只是改成在 Node 上跑，資料存成本機的 SQLite 和檔案。
+
+需要：Apple Silicon Mac、Homebrew、**Node.js 22.18 以上**。其他工具和 4.1 一樣。
+
+```sh
+git clone https://github.com/SammyLin/yanroku.git && cd yanroku/runner
+brew install go ffmpeg whisper-cpp node
+npm i -g @agentclientprotocol/claude-agent-acp && claude login   # 摘要等用的 AI，見 4.5
+cp .env.example .env        # 本機模式不用填 API_BASE 和 CF_ACCESS_*
+./deploy.sh                 # 編譯、下載模型（約 1.5 GB）
+./yanroku up                # 打開 http://127.0.0.1:8780
+```
+
+`Ctrl-C` 會先讓 runner 把處理中的工作交回佇列，再關掉網頁服務。要開機自動跑：`sh install-launchd.sh --local`（log 在 `data/logs/runner.log`，之後 `deploy.sh` 會沿用本機模式）。
+
+**資料**：全部在 `runner/data/web/`（`yanroku.db` 是 SQLite，`audio/` 是音訊）。備份就是在停止服務後複製這個資料夾。資料庫的 migrations 每次啟動時會自動套用。
+
+**設定**（寫在 `runner/.env`，指令列參數優先）：
+
+| 變數 | 指令列 | 預設 | 說明 |
+|---|---|---|---|
+| `LOCAL_HOST` | `--host` | `127.0.0.1` | 監聽的位址。只要不是 loopback（`127.0.0.1`、`localhost`、`::1`），就必須設 `LOCAL_PASSWORD` |
+| `LOCAL_PORT` | `--port` | `8780` | |
+| `LOCAL_PASSWORD` | | | 網頁登入密碼。只在非 loopback 時使用；改密碼會讓所有人登出 |
+| `YANROKU_WEB` | | `runner/../web` | repo 的 `web/` 目錄。只有把執行檔放到 repo 外面時才需要設 |
+
+**登入規則**
+- 預設只綁 `127.0.0.1`，不用登入，其他裝置連不到。為了防 DNS rebinding，只接受 `Host` 是 `localhost` / `127.0.0.1` / `[::1]` 的請求。
+- 想讓同一個網路的其他裝置使用：`./yanroku up --host 0.0.0.0`（或在 `.env` 設 `LOCAL_HOST=0.0.0.0`），並設 `LOCAL_PASSWORD`。沒設密碼時會拒絕啟動。網頁會先出現登入頁，登入後 30 天內有效。
+- runner 由 `yanroku up` 自己帶起來，每次啟動都會產生新的 runner token，其他程式沒有這個 token 就打不到 runner API。
+
+**限制**
+- 瀏覽器只在 HTTPS 或 localhost 下才允許用麥克風，所以用 `http://192.168.x.x:8780` 連時能看、能上傳，但不能直接在網頁錄音。需要的話，在前面加 HTTPS，例如 Tailscale Serve 或 Caddy。
+- iOS App 的「連線到自己的伺服器」目前走 Cloudflare Access 登入，還不支援本機模式的密碼；本機模式請用瀏覽器。
+- 只有一台 runner（就是 `yanroku up` 自己那台）。需要多台 Mac 分攤工作的話，用下面的 Cloudflare 版本。
 
 ---
 
