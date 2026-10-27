@@ -109,6 +109,41 @@ export async function serveR2(req: Request, bucket: R2Bucket, key: string, conte
   return new Response(obj.body, { status: 206, headers });
 }
 
+export type D1Class = "network" | "reset" | "internal" | "nomem" | "timeout" | null;
+
+export function d1Class(e: unknown): D1Class {
+  if (e instanceof HttpError) return null;
+  const msg = String((e as Error)?.message ?? e);
+  if (/Network connection lost/i.test(msg)) return "network";
+  if (/storage caused object to be reset|reset because its code was updated/i.test(msg)) return "reset";
+  if (/Replica disconnected from primary|transient issue on remote node/i.test(msg)) return "network";
+  if (/D1_ERROR:.*(?:timed out|internal error)/i.test(msg)) return msg.includes("timed out") ? "timeout" : "internal";
+  if (/SQLITE_NOMEM|out of memory/i.test(msg)) return "nomem";
+  return null;
+}
+
+export function isTransientD1(e: unknown): boolean {
+  return d1Class(e) !== null;
+}
+
+export async function retryIdempotent<T>(fn: () => Promise<T>, attempts = 3, baseMs = 50): Promise<T> {
+  let lastError: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastError = e;
+      if (!isTransientD1(e)) throw e;
+      if (i < attempts - 1) {
+        const maxDelay = baseMs * (1 << i);
+        const delay = Math.random() * maxDelay;
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+  }
+  throw lastError;
+}
+
 // Ported from runner/pipeline.go (ids + names only; prompts stay in the runner).
 export const templates = [{ id: "meeting", name: "會議摘要" }];
 export const languages = [
