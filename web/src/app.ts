@@ -2,6 +2,7 @@ import { askRoutes } from "./ask";
 import { verifyAccessJwt } from "./auth";
 import {
   type Env, type Handler, HttpError, errorResponse, first, languages, parseParts, partNumber, readJSON, serveR2, splitFilename, templates,
+  isTransientD1, d1Class,
 } from "./http";
 import { notify, pushEnabled } from "./push";
 import { listRunners, runnerRoutes } from "./runner";
@@ -461,7 +462,20 @@ export function createWorker<E extends Env = Env>(opts: WorkerOptions<E>): Expor
         } catch (e) {
           if (e instanceof HttpError) return errorResponse(e.status, e.message);
           console.error(req.method, url.pathname, e);
-          return errorResponse(500, String((e as Error)?.message ?? e));
+          const detail = String((e as Error)?.message ?? e);
+          if (isTransientD1(e)) {
+            const cls = d1Class(e);
+            return new Response(JSON.stringify({ detail }), {
+              status: 503,
+              headers: {
+                "Content-Type": "application/json",
+                "Retry-After": "1",
+                "x-yanroku-transient": "d1",
+                "x-yanroku-d1-class": cls ?? "unknown",
+              },
+            });
+          }
+          return errorResponse(500, detail);
         }
       }
       return pathMatched ? errorResponse(405, "method not allowed") : errorResponse(404, "not found");
