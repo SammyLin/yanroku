@@ -109,6 +109,9 @@ export async function serveR2(req: Request, bucket: R2Bucket, key: string, conte
   return new Response(obj.body, { status: 206, headers });
 }
 
+// D1 failures that say nothing about the request itself. "network" / "reset" / "internal" / "timeout" usually pass on a
+// second try; "nomem" (SQLITE_NOMEM) means the statement was too heavy, so it is never retried inline (the same statement
+// would fail the same way) — shrink the query instead. Either way the caller gets 503 + Retry-After (d1ErrorResponse).
 export type D1Class = "network" | "reset" | "internal" | "nomem" | "timeout" | null;
 
 export function d1Class(e: unknown): D1Class {
@@ -117,31 +120,52 @@ export function d1Class(e: unknown): D1Class {
   if (/Network connection lost/i.test(msg)) return "network";
   if (/storage caused object to be reset|reset because its code was updated/i.test(msg)) return "reset";
   if (/Replica disconnected from primary|transient issue on remote node/i.test(msg)) return "network";
-  if (/D1_ERROR:.*(?:timed out|internal error)/i.test(msg)) return msg.includes("timed out") ? "timeout" : "internal";
   if (/SQLITE_NOMEM|out of memory/i.test(msg)) return "nomem";
+  if (/D1_ERROR:.*timed out/i.test(msg)) return "timeout";
+  if (/D1_ERROR:.*internal error/i.test(msg)) return "internal";
   return null;
 }
 
+/** Worth repeating as is: a D1 hiccup, not a heavy (nomem) or broken statement. */
 export function isTransientD1(e: unknown): boolean {
-  return d1Class(e) !== null;
+  const c = d1Class(e);
+  return c !== null && c !== "nomem";
 }
 
-export async function retryIdempotent<T>(fn: () => Promise<T>, attempts = 3, baseMs = 50): Promise<T> {
-  let lastError: unknown;
-  for (let i = 0; i < attempts; i++) {
+// Seconds a client should wait after a 503: short for a hiccup, longer when D1 ran out of memory.
+export const D1_RETRY_AFTER_S = 2;
+export const D1_NOMEM_RETRY_AFTER_S = 30;
+export const D1_ATTEMPTS = 3; // 1 try + 2 retries
+
+/**
+ * Runs fn again (up to `attempts` in all, full jitter, < 150 ms of waiting by default) when it fails with a transient D1
+ * error. Only for reads and for writes that are safe to repeat; anything else is thrown at once.
+ */
+export async function retryIdempotent<T>(fn: () => Promise<T>, attempts = D1_ATTEMPTS, baseMs = 50): Promise<T> {
+  for (let i = 1; ; i++) {
     try {
       return await fn();
     } catch (e) {
-      lastError = e;
-      if (!isTransientD1(e)) throw e;
-      if (i < attempts - 1) {
-        const maxDelay = baseMs * (1 << i);
-        const delay = Math.random() * maxDelay;
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      }
+      if (i >= attempts || !isTransientD1(e)) throw e;
+      await new Promise((resolve) => setTimeout(resolve, Math.random() * baseMs * 2 ** (i - 1)));
     }
   }
-  throw lastError;
+}
+
+/**
+ * 503 + Retry-After for a D1 failure that outlived retryIdempotent (runners back off and claim again), else null.
+ * x-yanroku-transient marks the hiccups (an embedder may report them as warnings); nomem stays an error worth fixing.
+ */
+export function d1ErrorResponse(e: unknown, detail: string): Response | null {
+  const cls = d1Class(e);
+  if (!cls) return null;
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "Retry-After": String(cls === "nomem" ? D1_NOMEM_RETRY_AFTER_S : D1_RETRY_AFTER_S),
+    "x-yanroku-d1-class": cls,
+  };
+  if (cls !== "nomem") headers["x-yanroku-transient"] = "d1";
+  return new Response(JSON.stringify({ detail }), { status: 503, headers });
 }
 
 // Ported from runner/pipeline.go (ids + names only; prompts stay in the runner).
