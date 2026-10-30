@@ -1,11 +1,12 @@
 // Vocabulary suggestions (詞彙建議): runners scan recordings for ASR-worthy terms (claim/result live in runner.ts);
 // the user adds (→ end of settings.vocab) or dismisses each. Never changes settings.vocab by itself.
-import { type Env, type Handler, HttpError, readJSON } from "./http";
+import { type Env, type Handler, HttpError, readJSON, retryIdempotent } from "./http";
 import { getSettings, putSettings } from "./settings";
 
 export const SCAN_SIZE = 10; // recordings per scan; the next scan continues after to_id
 const DIFFS_PER_REC = 150;
 const TEXT_CHARS = 20_000;
+const SCAN_PAGE = 500; // segments per statement in scanSegments
 const KINDS = ["product", "company", "person", "term", "other"];
 const PROCESSING = `('queued','converting','transcribing','cleaning')`;
 
@@ -35,22 +36,45 @@ export const scanCandidates = async (env: Env) =>
 
 // Letters/digits only: whitespace- and punctuation-only cleanup changes are not vocabulary fixes.
 const bare = (s: string) => s.replace(/[^\p{L}\p{N}]/gu, "");
+const isDiff = (s: { text_raw: string; text_clean: string | null }): s is { text_raw: string; text_clean: string } =>
+  s.text_clean !== null && bare(s.text_raw) !== bare(s.text_clean);
 
 // Claim material for one recording: segments where cleanup changed words, and the cleaned text.
 export function scanMaterial(segs: { text_raw: string; text_clean: string | null }[]) {
-  const diffs = segs.filter((s) => s.text_clean !== null && bare(s.text_raw) !== bare(s.text_clean))
+  const diffs = segs.filter(isDiff)
     .slice(0, DIFFS_PER_REC).map((s) => ({ raw: s.text_raw, clean: s.text_clean! }));
   return { diffs, text: segs.map((s) => s.text_clean ?? s.text_raw).join("\n").slice(0, TEXT_CHARS) };
 }
 
+// Segments of one recording, page by page, until scanMaterial has all it can use (TEXT_CHARS of text and DIFFS_PER_REC diffs):
+// one D1 batch with every segment of SCAN_SIZE recordings was big enough to run D1 out of memory (SQLITE_NOMEM).
+async function scanSegments(env: Env, rid: number) {
+  const out: { text_raw: string; text_clean: string | null }[] = [];
+  let chars = 0, diffs = 0, lastMs = -1, lastId = -1;
+  while (chars <= TEXT_CHARS || diffs < DIFFS_PER_REC) { // chars counts a "\n" per line: joined length = chars - 1
+    const { results } = await retryIdempotent(() => env.DB.prepare(`SELECT id, start_ms, text_raw, text_clean FROM segments
+      WHERE recording_id=?1 AND (start_ms > ?2 OR (start_ms = ?2 AND id > ?3)) ORDER BY start_ms, id LIMIT ?4`)
+      .bind(rid, lastMs, lastId, SCAN_PAGE).all<{ id: number; start_ms: number; text_raw: string; text_clean: string | null }>());
+    for (const r of results) {
+      out.push({ text_raw: r.text_raw, text_clean: r.text_clean });
+      chars += (r.text_clean ?? r.text_raw).length + 1;
+      if (isDiff(r)) diffs++;
+      lastMs = r.start_ms, lastId = r.id;
+    }
+    if (results.length < SCAN_PAGE) break;
+  }
+  return out;
+}
+
 export async function scanJob(env: Env, scan: { id: number; from_id: number; to_id: number; user_id: number }) {
-  const { results: recs } = await env.DB.prepare(`SELECT id, title FROM recordings
-    WHERE id BETWEEN ?1 AND ?2 AND user_id=?3 AND status='done' AND deleted_at IS NULL ORDER BY id`).bind(scan.from_id, scan.to_id, scan.user_id).all<{ id: number; title: string }>();
-  const segs = recs.length ? await env.DB.batch<{ text_raw: string; text_clean: string | null }>(recs.map((r) =>
-    env.DB.prepare(`SELECT text_raw, text_clean FROM segments WHERE recording_id=? ORDER BY start_ms, id`).bind(r.id))) : [];
-  const { results: skip } = await env.DB.prepare(`SELECT term FROM vocab_suggestions WHERE user_id=? AND status<>'new'`).bind(scan.user_id).all<{ term: string }>();
-  return { kind: "vocab", id: scan.id, vocab: (await getSettings(env, scan.user_id)).vocab, skip: skip.map((s) => s.term),
-    recordings: recs.map((r, i) => ({ ...r, ...scanMaterial(segs[i].results) })) };
+  const { results: recs } = await retryIdempotent(() => env.DB.prepare(`SELECT id, title FROM recordings
+    WHERE id BETWEEN ?1 AND ?2 AND user_id=?3 AND status='done' AND deleted_at IS NULL ORDER BY id`).bind(scan.from_id, scan.to_id, scan.user_id).all<{ id: number; title: string }>());
+  const segs: Awaited<ReturnType<typeof scanSegments>>[] = [];
+  for (const r of recs) segs.push(await scanSegments(env, r.id));
+  const { results: skip } = await retryIdempotent(() => env.DB.prepare(`SELECT term FROM vocab_suggestions WHERE user_id=? AND status<>'new'`).bind(scan.user_id).all<{ term: string }>());
+  const { vocab } = await retryIdempotent(() => getSettings(env, scan.user_id));
+  return { kind: "vocab", id: scan.id, vocab, skip: skip.map((s) => s.term),
+    recordings: recs.map((r, i) => ({ ...r, ...scanMaterial(segs[i]) })) };
 }
 
 const text = (v: unknown, max: number) => (typeof v === "string" && v.trim() && [...v.trim()].length <= max ? v.trim() : null);

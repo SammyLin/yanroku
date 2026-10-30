@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -18,8 +19,9 @@ import (
 var errLeaseLost = errors.New("lease lost")
 
 type httpError struct {
-	Status int
-	Body   string
+	Status     int
+	Body       string
+	RetryAfter time.Duration // from a Retry-After header in seconds (503 / 429), else 0
 }
 
 func (e *httpError) Error() string { return fmt.Sprintf("HTTP %d: %s", e.Status, e.Body) }
@@ -34,19 +36,25 @@ type client struct {
 	hc                       *http.Client
 	attempts                 int
 	backoff                  time.Duration // first retry delay, doubled per attempt
+	retryAfterUnit           time.Duration // one Retry-After "second" (tests shrink it)
 }
+
+// maxRetryAfter caps how long a single Retry-After can park the runner.
+const maxRetryAfter = time.Minute
 
 func newClient(cfg Config) *client {
 	return &client{
 		base: strings.TrimSuffix(cfg.APIBase, "/"), id: cfg.AccessClientID, secret: cfg.AccessClientSecret, runner: cfg.RunnerName, token: cfg.RunnerToken,
 		// Access answers a bad token with a redirect to its login page; surface that as an error instead of following it.
-		hc:       &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }},
-		attempts: 6,
-		backoff:  time.Second,
+		hc:             &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }},
+		attempts:       6,
+		backoff:        time.Second,
+		retryAfterUnit: time.Second,
 	}
 }
 
-// call sends a request, retrying network errors, 5xx and failed response handling with exponential backoff.
+// call sends a request, retrying network errors, 5xx and failed response handling with exponential backoff; a 5xx with
+// Retry-After (the Worker's 503 when D1 is unavailable) waits at least that long, capped at maxRetryAfter.
 // Non-2xx responses become *httpError (409 matches errLeaseLost). handle, if set, consumes a 2xx response.
 func (c *client) call(ctx context.Context, method, path string, body []byte, ctype string, handle func(*http.Response) error) error {
 	delay := c.backoff
@@ -56,11 +64,15 @@ func (c *client) call(ctx context.Context, method, path string, body []byte, cty
 		if err == nil || ctx.Err() != nil || (isHTTP && he.Status < 500) || attempt >= c.attempts {
 			return err
 		}
-		slog.Warn("api retry", "method", method, "path", path, "attempt", attempt, "err", err)
+		wait := delay
+		if isHTTP && he.RetryAfter > wait {
+			wait = min(he.RetryAfter, maxRetryAfter)
+		}
+		slog.Warn("api retry", "method", method, "path", path, "attempt", attempt, "wait", wait, "err", err)
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-time.After(delay):
+		case <-time.After(wait):
 		}
 		delay = min(delay*2, 30*time.Second)
 	}
@@ -88,7 +100,11 @@ func (c *client) once(ctx context.Context, method, path string, body []byte, cty
 	defer resp.Body.Close()
 	if resp.StatusCode/100 != 2 {
 		b, _ := io.ReadAll(io.LimitReader(resp.Body, 1000))
-		return &httpError{resp.StatusCode, strings.TrimSpace(string(b))}
+		he := &httpError{Status: resp.StatusCode, Body: strings.TrimSpace(string(b))}
+		if s, err := strconv.Atoi(strings.TrimSpace(resp.Header.Get("Retry-After"))); err == nil && s > 0 {
+			he.RetryAfter = time.Duration(s) * c.retryAfterUnit
+		}
+		return he
 	}
 	if handle == nil {
 		return nil

@@ -97,18 +97,19 @@ const job1 = await res1.json<{ job: { kind: string; id: number } }>();
 assert.equal(job1.job?.kind, "ask");
 assert.equal(job1.job?.id, 1);
 
-// Case 2: fail first 2 attempts with SQLITE_NOMEM, succeed on 3rd
+// Case 2: SQLITE_NOMEM is not retried inline (the same statement would fail again) → 503, longer Retry-After, not "transient"
 await db.exec(`DELETE FROM asks`);
 await db.exec(`INSERT INTO asks(id, user_id, question, status) VALUES(2, 1, 'test2', 'queued')`);
 callCount = 0;
-failCount = 2;
+failCount = 1;
 errors[0] = "D1_ERROR: out of memory: SQLITE_NOMEM";
 const res2 = await worker.fetch(req({ runner: "test-runner2", asks: true }), { DB: failingDB, AUDIO: r2, ACCESS_TEAM: "t", ACCESS_AUD: "a", DEV_NO_AUTH: "1" }, {} as ExecutionContext);
-assert.equal(res2.status, 200);
-assert.ok(callCount >= 3, `should retry NOMEM: called ${callCount} times`);
-const job2 = await res2.json<{ job: { kind: string; id: number } }>();
-assert.equal(job2.job?.kind, "ask");
-assert.equal(job2.job?.id, 2);
+assert.equal(res2.status, 503);
+assert.equal(callCount, 1, "NOMEM must not be retried");
+assert.equal(res2.headers.get("Retry-After"), "30");
+assert.equal(res2.headers.get("x-yanroku-d1-class"), "nomem");
+assert.equal(res2.headers.get("x-yanroku-transient"), null, "NOMEM stays an error, not a transient warning");
+failCount = 0;
 
 // Case 3: fail all 3 attempts → 503 with transient headers
 await db.exec(`DELETE FROM asks`);
@@ -118,9 +119,10 @@ failCount = 10;
 errors[0] = "D1_ERROR: Network connection lost.";
 const res3 = await worker.fetch(req({ runner: "test-runner3", asks: true }), { DB: failingDB, AUDIO: r2, ACCESS_TEAM: "t", ACCESS_AUD: "a", DEV_NO_AUTH: "1" }, {} as ExecutionContext);
 assert.equal(res3.status, 503);
-assert.equal(res3.headers.get("Retry-After"), "1");
+assert.equal(res3.headers.get("Retry-After"), "2");
 assert.equal(res3.headers.get("x-yanroku-transient"), "d1");
-assert.ok(["network", "timeout", "internal", "reset", "nomem"].includes(res3.headers.get("x-yanroku-d1-class") ?? ""));
+assert.equal(res3.headers.get("x-yanroku-d1-class"), "network");
+assert.equal(callCount, 3, "1 try + 2 retries, then give up");
 const detail3 = await res3.json<{ detail: string }>();
 assert.ok(detail3.detail.includes("stage="), "detail should include stage");
 
@@ -147,5 +149,19 @@ const res5b = await worker.fetch(req({ runner: "test-runner5", asks: true }), { 
 assert.equal(res5b.status, 200);
 const job5b = await res5b.json<{ job: { kind: string; id: number } }>();
 assert.equal(job5b.job?.id, 5, "same runner should get same job on retry");
+
+// Case 6: the ask index lists each recording's speakers that have segments (speakers-driven query, chunked)
+await db.exec(`DELETE FROM asks`);
+for (let r = 100; r < 100 + 450; r++) { // > 2 chunks of ASK_SPEAKER_CHUNK
+  await db.exec(`INSERT INTO recordings(id, user_id, filename, status, title) VALUES(${r}, 1, 'r${r}.m4a', 'done', 'R${r}')`);
+  await db.exec(`INSERT INTO speakers(id, recording_id, label, display_name, user_id) VALUES(${r * 10}, ${r}, 'SPEAKER_00', 'Amy', 1), (${r * 10 + 1}, ${r}, 'SPEAKER_01', 'Ben', 1), (${r * 10 + 2}, ${r}, 'SPEAKER_02', 'Silent', 1)`);
+  await db.exec(`INSERT INTO segments(recording_id, start_ms, end_ms, speaker_id, text_raw, user_id) VALUES(${r}, 0, 1, ${r * 10}, 'a', 1), (${r}, 1, 2, ${r * 10 + 1}, 'b', 1), (${r}, 2, 3, ${r * 10}, 'c', 1)`);
+}
+await db.exec(`INSERT INTO asks(id, user_id, question, status) VALUES(6, 1, 'who?', 'queued')`);
+const res6 = await worker.fetch(req({ runner: "test-runner6", asks: true }), { DB: db, AUDIO: r2, ACCESS_TEAM: "t", ACCESS_AUD: "a", DEV_NO_AUTH: "1" }, {} as ExecutionContext);
+assert.equal(res6.status, 200);
+const job6 = await res6.json<{ job: { index: { id: number; speakers: string[] }[] } }>();
+assert.equal(job6.job.index.length, 450);
+for (const r of job6.job.index) assert.deepEqual([...r.speakers].sort(), ["Amy", "Ben"], `recording ${r.id} speakers`);
 
 console.log("runner-claim-retry ok");
