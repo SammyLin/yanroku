@@ -111,8 +111,9 @@ export async function serveR2(req: Request, bucket: R2Bucket, key: string, conte
 
 // D1 failures that say nothing about the request itself. "network" / "reset" / "internal" / "timeout" usually pass on a
 // second try; "nomem" (SQLITE_NOMEM) means the statement was too heavy, so it is never retried inline (the same statement
-// would fail the same way) — shrink the query instead. Either way the caller gets 503 + Retry-After (d1ErrorResponse).
-export type D1Class = "network" | "reset" | "internal" | "nomem" | "timeout" | null;
+// would fail the same way) — shrink the query instead. "export" means wrangler/D1 is mid long-running export (backup);
+// that lasts minutes, so it is also never retried inline. Either way the caller gets 503 + Retry-After (d1ErrorResponse).
+export type D1Class = "network" | "reset" | "internal" | "nomem" | "timeout" | "export" | null;
 
 export function d1Class(e: unknown): D1Class {
   if (e instanceof HttpError) return null;
@@ -121,20 +122,22 @@ export function d1Class(e: unknown): D1Class {
   if (/storage caused object to be reset|reset because its code was updated/i.test(msg)) return "reset";
   if (/Replica disconnected from primary|transient issue on remote node/i.test(msg)) return "network";
   if (/SQLITE_NOMEM|out of memory/i.test(msg)) return "nomem";
+  if (/long-running export/i.test(msg)) return "export";
   if (/D1_ERROR:.*timed out/i.test(msg)) return "timeout";
   if (/D1_ERROR:.*internal error/i.test(msg)) return "internal";
   return null;
 }
 
-/** Worth repeating as is: a D1 hiccup, not a heavy (nomem) or broken statement. */
+/** Worth repeating as is: a D1 hiccup, not a heavy (nomem), export-blocked, or broken statement. */
 export function isTransientD1(e: unknown): boolean {
   const c = d1Class(e);
-  return c !== null && c !== "nomem";
+  return c !== null && c !== "nomem" && c !== "export";
 }
 
-// Seconds a client should wait after a 503: short for a hiccup, longer when D1 ran out of memory.
+// Seconds a client should wait after a 503: short for a hiccup, longer when D1 ran out of memory or is exporting.
 export const D1_RETRY_AFTER_S = 2;
 export const D1_NOMEM_RETRY_AFTER_S = 30;
+export const D1_EXPORT_RETRY_AFTER_S = 30; // backup export usually runs for minutes; tell runners to wait
 export const D1_ATTEMPTS = 3; // 1 try + 2 retries
 
 /**
@@ -154,14 +157,17 @@ export async function retryIdempotent<T>(fn: () => Promise<T>, attempts = D1_ATT
 
 /**
  * 503 + Retry-After for a D1 failure that outlived retryIdempotent (runners back off and claim again), else null.
- * x-yanroku-transient marks the hiccups (an embedder may report them as warnings); nomem stays an error worth fixing.
+ * x-yanroku-transient marks the hiccups and export blocks (an embedder may report them as warnings); nomem stays an
+ * error worth fixing.
  */
 export function d1ErrorResponse(e: unknown, detail: string): Response | null {
   const cls = d1Class(e);
   if (!cls) return null;
+  const retryAfter =
+    cls === "nomem" ? D1_NOMEM_RETRY_AFTER_S : cls === "export" ? D1_EXPORT_RETRY_AFTER_S : D1_RETRY_AFTER_S;
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    "Retry-After": String(cls === "nomem" ? D1_NOMEM_RETRY_AFTER_S : D1_RETRY_AFTER_S),
+    "Retry-After": String(retryAfter),
     "x-yanroku-d1-class": cls,
   };
   if (cls !== "nomem") headers["x-yanroku-transient"] = "d1";

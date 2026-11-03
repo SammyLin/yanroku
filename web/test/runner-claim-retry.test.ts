@@ -40,42 +40,32 @@ let failCount = 0;
 let callCount = 0;
 const errors = ["D1_ERROR: Network connection lost.", "D1_ERROR: out of memory: SQLITE_NOMEM"];
 
+const maybeFail = async <T>(fn: () => Promise<T>): Promise<T> => {
+  callCount++;
+  if (failCount > 0) {
+    failCount--;
+    throw new Error(errors[0]);
+  }
+  return fn();
+};
+
 const failingDB = {
   ...db,
   prepare: (sql: string) => {
     const stmt = db.prepare(sql);
     const makeWrapped = (bound: ReturnType<typeof stmt.bind>) => ({
       ...bound,
-      async first<T>() {
-        callCount++;
-        if (failCount > 0) {
-          failCount--;
-          throw new Error(errors[0]);
-        }
-        return bound.first<T>();
-      },
-      async all<T>() {
-        callCount++;
-        if (failCount > 0) {
-          failCount--;
-          throw new Error(errors[0]);
-        }
-        return bound.all<T>();
-      },
-      async run() {
-        callCount++;
-        if (failCount > 0) {
-          failCount--;
-          throw new Error(errors[0]);
-        }
-        return bound.run();
-      },
+      first: <T>() => maybeFail(() => bound.first<T>()),
+      all: <T>() => maybeFail(() => bound.all<T>()),
+      run: () => maybeFail(() => bound.run()),
       bind(...args: unknown[]) {
         return makeWrapped(bound.bind(...args));
       },
     });
     return makeWrapped(stmt);
   },
+  // hold() / heartbeat use batch; fail the whole batch the same way as prepare
+  batch: (stmts: unknown[]) => maybeFail(() => db.batch(stmts as never)),
 } as unknown as D1Database;
 
 const r2: R2Bucket = { head: async () => ({ size: 1000 }) } as unknown as R2Bucket;
@@ -109,6 +99,38 @@ assert.equal(callCount, 1, "NOMEM must not be retried");
 assert.equal(res2.headers.get("Retry-After"), "30");
 assert.equal(res2.headers.get("x-yanroku-d1-class"), "nomem");
 assert.equal(res2.headers.get("x-yanroku-transient"), null, "NOMEM stays an error, not a transient warning");
+failCount = 0;
+
+// Case 2b: long-running export (YANROKU-CLOUD-6/7) — no inline retry, 503 + longer Retry-After, marked transient
+await db.exec(`DELETE FROM asks`);
+await db.exec(`INSERT INTO asks(id, user_id, question, status) VALUES(22, 1, 'test-export', 'queued')`);
+callCount = 0;
+failCount = 1;
+errors[0] = "D1_ERROR: Currently processing a long-running export.";
+const res2b = await worker.fetch(req({ runner: "test-runner-export", asks: true }), { DB: failingDB, AUDIO: r2, ACCESS_TEAM: "t", ACCESS_AUD: "a", DEV_NO_AUTH: "1" }, {} as ExecutionContext);
+assert.equal(res2b.status, 503);
+assert.equal(callCount, 1, "export must not be retried inline");
+assert.equal(res2b.headers.get("Retry-After"), "30");
+assert.equal(res2b.headers.get("x-yanroku-d1-class"), "export");
+assert.equal(res2b.headers.get("x-yanroku-transient"), "d1", "export is ops noise → warning, not Sentry error");
+failCount = 0;
+
+// Case 2c: same export error on heartbeat (YANROKU-CLOUD-6)
+await db.exec(`INSERT INTO recordings(id, user_id, filename, status, title, runner, lease_until) VALUES(25, 1, 'r25.m4a', 'transcribing', 'R25', 'hb-runner', datetime('now', '+10 minutes'))`);
+callCount = 0;
+failCount = 1;
+errors[0] = "D1_ERROR: Currently processing a long-running export.";
+const hbReq = new Request("https://yanroku.app/api/runner/recordings/25/heartbeat", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ runner: "hb-runner" }),
+});
+const resHb = await worker.fetch(hbReq, { DB: failingDB, AUDIO: r2, ACCESS_TEAM: "t", ACCESS_AUD: "a", DEV_NO_AUTH: "1" }, {} as ExecutionContext);
+assert.equal(resHb.status, 503);
+assert.equal(callCount, 1, "heartbeat export must not be retried inline");
+assert.equal(resHb.headers.get("Retry-After"), "30");
+assert.equal(resHb.headers.get("x-yanroku-d1-class"), "export");
+assert.equal(resHb.headers.get("x-yanroku-transient"), "d1");
 failCount = 0;
 
 // Case 3: fail all 3 attempts → 503 with transient headers

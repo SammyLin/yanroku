@@ -28,6 +28,8 @@ const cases: [string, ReturnType<typeof d1Class>][] = [
   ["D1_ERROR: The operation timed out", "timeout"],
   ["D1_ERROR: out of memory: SQLITE_NOMEM", "nomem"],
   ["D1_ERROR: internal error: SQLITE_NOMEM", "nomem"], // memory wins over "internal": not retried
+  ["D1_ERROR: Currently processing a long-running export.", "export"], // YANROKU-CLOUD-6/7
+  ["Error: D1_ERROR: Currently processing a long-running export. stage=seen", "export"],
   ["D1_ERROR: UNIQUE constraint failed: asks.id", null],
   ["D1_ERROR: no such table: x", null],
   ["internal error", null], // not from D1
@@ -38,6 +40,7 @@ assert.equal(d1Class(new HttpError(503, "Network connection lost")), null, "Http
 assert.equal(isTransientD1(new Error("D1_ERROR: Network connection lost.")), true);
 assert.equal(isTransientD1(new Error("D1_ERROR: internal error; reference = x")), true);
 assert.equal(isTransientD1(new Error("D1_ERROR: out of memory: SQLITE_NOMEM")), false, "nomem is not retried");
+assert.equal(isTransientD1(new Error("D1_ERROR: Currently processing a long-running export.")), false, "export is not retried inline");
 assert.equal(isTransientD1(new Error("D1_ERROR: UNIQUE constraint failed")), false);
 
 // retryIdempotent: a transient failure then success
@@ -63,8 +66,12 @@ await assert.rejects(retryIdempotent(f.fn), /Network connection lost/);
 assert.equal(f.calls(), D1_ATTEMPTS);
 assert.ok(D1_ATTEMPTS >= 2 && D1_ATTEMPTS <= 3, "1–2 retries");
 
-// non-transient and nomem: thrown at once
-for (const msg of ["D1_ERROR: UNIQUE constraint failed: asks.id", "D1_ERROR: out of memory: SQLITE_NOMEM"]) {
+// non-transient, nomem, and export: thrown at once (export lasts minutes; retrying within 150 ms does nothing)
+for (const msg of [
+  "D1_ERROR: UNIQUE constraint failed: asks.id",
+  "D1_ERROR: out of memory: SQLITE_NOMEM",
+  "D1_ERROR: Currently processing a long-running export.",
+]) {
   f = flaky([msg]);
   await assert.rejects(retryIdempotent(f.fn), (e: Error) => e.message === msg);
   assert.equal(f.calls(), 1, `${msg} is not retried`);
@@ -90,6 +97,11 @@ const nomem = d1ErrorResponse(new Error("D1_ERROR: out of memory: SQLITE_NOMEM")
 assert.equal(nomem.status, 503);
 assert.equal(nomem.headers.get("Retry-After"), "30");
 assert.equal(nomem.headers.get("x-yanroku-transient"), null);
+const exp = d1ErrorResponse(new Error("D1_ERROR: Currently processing a long-running export."), "export")!;
+assert.equal(exp.status, 503);
+assert.equal(exp.headers.get("Retry-After"), "30", "export waits longer than a network hiccup");
+assert.equal(exp.headers.get("x-yanroku-d1-class"), "export");
+assert.equal(exp.headers.get("x-yanroku-transient"), "d1", "export is ops noise, not a bug to fix");
 assert.equal(d1ErrorResponse(new Error("D1_ERROR: no such table: x"), "x"), null);
 assert.equal(d1ErrorResponse(new HttpError(404, "not found"), "x"), null);
 
