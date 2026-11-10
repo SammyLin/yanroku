@@ -13,6 +13,7 @@ const CHUNK_CHARS = 300_000; // JSON chars per bound parameter; D1 caps a value 
 // ponytail: dates handed to the Ask LLM are Taiwan local; add a timezone setting if the user ever moves
 const TZ = `'+8 hours'`;
 const ASK_INDEX_LIMIT = 1000; // Ask LLM sees the most recent N done recordings to limit memory usage
+const ASK_SPEAKER_CHUNK = 200; // recordings per speaker-names statement in askIndex
 
 type Kind = keyof typeof ACTIVE;
 const kindOf = (s: string): Kind =>
@@ -119,15 +120,21 @@ async function askIndex(env: Env, uid: number) {
       .all<{ id: number; title: string; date: string; duration_s: number | null; summary: string | null }>()
   );
   if (!recordings.length) return [];
-  const ids = recordings.map((r) => r.id);
-  const { results: speakers } = await retryIdempotent(() =>
-    env.DB.prepare(`SELECT s.recording_id, json_group_array(DISTINCT sp.display_name) AS names
-      FROM segments s JOIN speakers sp ON sp.id = s.speaker_id
-      WHERE s.recording_id IN (SELECT value FROM json_each(?))
-      GROUP BY s.recording_id`)
-      .bind(JSON.stringify(ids))
-      .all<{ recording_id: number; names: string }>()
-  );
+  // Names come from speakers (one row per speaker, index spk_rec) with an indexed EXISTS on segments(speaker_id), in id chunks:
+  // grouping every segment of up to ASK_INDEX_LIMIT recordings in one statement is what ran D1 out of memory (SQLITE_NOMEM).
+  const speakers: { recording_id: number; names: string }[] = [];
+  for (let i = 0; i < recordings.length; i += ASK_SPEAKER_CHUNK) {
+    const ids = JSON.stringify(recordings.slice(i, i + ASK_SPEAKER_CHUNK).map((r) => r.id));
+    const { results } = await retryIdempotent(() =>
+      env.DB.prepare(`SELECT sp.recording_id, json_group_array(DISTINCT sp.display_name) AS names
+        FROM speakers sp
+        WHERE sp.recording_id IN (SELECT value FROM json_each(?)) AND EXISTS (SELECT 1 FROM segments s WHERE s.speaker_id = sp.id)
+        GROUP BY sp.recording_id`)
+        .bind(ids)
+        .all<{ recording_id: number; names: string }>()
+    );
+    speakers.push(...results);
+  }
   const speakerMap = new Map(speakers.map((s) => [s.recording_id, JSON.parse(s.names) as string[]]));
   return recordings.map((r) => ({ ...r, speakers: speakerMap.get(r.id) ?? [] }));
 }

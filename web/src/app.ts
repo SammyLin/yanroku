@@ -2,7 +2,7 @@ import { askRoutes } from "./ask";
 import { verifyAccessJwt } from "./auth";
 import {
   type Env, type Handler, HttpError, errorResponse, first, languages, parseParts, partNumber, readJSON, serveR2, splitFilename, templates,
-  isTransientD1, d1Class,
+  d1ErrorResponse,
 } from "./http";
 import { notify, pushEnabled } from "./push";
 import { listRunners, runnerRoutes } from "./runner";
@@ -463,18 +463,8 @@ export function createWorker<E extends Env = Env>(opts: WorkerOptions<E>): Expor
           if (e instanceof HttpError) return errorResponse(e.status, e.message);
           console.error(req.method, url.pathname, e);
           const detail = String((e as Error)?.message ?? e);
-          if (isTransientD1(e)) {
-            const cls = d1Class(e);
-            return new Response(JSON.stringify({ detail }), {
-              status: 503,
-              headers: {
-                "Content-Type": "application/json",
-                "Retry-After": "1",
-                "x-yanroku-transient": "d1",
-                "x-yanroku-d1-class": cls ?? "unknown",
-              },
-            });
-          }
+          const d1 = d1ErrorResponse(e, detail);
+          if (d1) return d1;
           return errorResponse(500, detail);
         }
       }

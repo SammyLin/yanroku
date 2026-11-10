@@ -94,7 +94,7 @@ callCount = 0;
 failCount = 10;
 const res2 = await worker.fetch(req(), { DB: failingDB, AUDIO: r2, ACCESS_TEAM: "t", ACCESS_AUD: "a", DEV_NO_AUTH: "1" }, {} as ExecutionContext);
 assert.equal(res2.status, 503);
-assert.equal(res2.headers.get("Retry-After"), "1");
+assert.equal(res2.headers.get("Retry-After"), "2");
 assert.equal(res2.headers.get("x-yanroku-transient"), "d1");
 assert.ok(["network", "timeout", "internal", "reset", "nomem"].includes(res2.headers.get("x-yanroku-d1-class") ?? ""));
 

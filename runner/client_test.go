@@ -30,6 +30,7 @@ func newFakeAPI(t *testing.T, respond func(call string, w http.ResponseWriter) b
 	t.Cleanup(srv.Close)
 	c := newClient(Config{APIBase: srv.URL + "/", AccessClientID: "cid", AccessClientSecret: "sec", RunnerToken: "rt", RunnerName: "mac1"})
 	c.backoff = time.Millisecond
+	c.retryAfterUnit = time.Millisecond
 	return f, c
 }
 
@@ -108,6 +109,34 @@ func TestClientRetry(t *testing.T) {
 	}
 	if count("GET /bad") != 1 || count("GET /lost") != 1 || count("GET /down") != c.attempts {
 		t.Fatalf("retry counts wrong: %v", f.seen())
+	}
+}
+
+// A 503 with Retry-After (D1 unavailable) is retried, and not sooner than the header asks.
+func TestClientRetryAfter(t *testing.T) {
+	var times []time.Time
+	_, c := newFakeAPI(t, func(call string, w http.ResponseWriter) bool {
+		if !strings.HasPrefix(call, "POST /api/runner/claim") {
+			return false
+		}
+		if times = append(times, time.Now()); len(times) < 3 {
+			w.Header().Set("Retry-After", "40") // × retryAfterUnit (1 ms in tests)
+			http.Error(w, `{"detail":"D1_ERROR: Network connection lost."}`, http.StatusServiceUnavailable)
+			return true
+		}
+		w.Write([]byte(`{"job":null}`))
+		return true
+	})
+	if err := c.json(t.Context(), "POST", "/api/runner/claim", map[string]any{"runner": "mac1"}, nil); err != nil {
+		t.Fatalf("claim after 503s: %v", err)
+	}
+	if len(times) != 3 {
+		t.Fatalf("want 3 tries, got %d", len(times))
+	}
+	for i := 1; i < len(times); i++ {
+		if gap := times[i].Sub(times[i-1]); gap < 40*time.Millisecond {
+			t.Fatalf("retry %d after %v, want ≥ 40ms (Retry-After)", i, gap)
+		}
 	}
 }
 
